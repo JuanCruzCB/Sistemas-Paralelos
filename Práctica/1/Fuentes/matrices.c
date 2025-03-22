@@ -2,6 +2,8 @@
 
 #include<stdlib.h>
 
+#include <sys/time.h>
+
 #define ORDENXFILAS 0
 #define ORDENXCOLUMNAS 1
 
