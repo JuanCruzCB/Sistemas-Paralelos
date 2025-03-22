@@ -224,4 +224,27 @@ El procesamiento paralelo es fundamental por varias razones:
 
 <h1 align="center">Clase 2 - 21 de marzo, 2025</h1>
 
-##
+## Memory Wall
+
+### Limitaciones
+
+- En muchas apps, el factor limitante es la memoria y el manejo de la misma y no la velocidad de la CPU.
+- Hay dos parámetros fundamentales en el sistema de memoria:
+  - **La latencia**: tiempo que transcurre desde que se solicita el dato hasta que está disponible.
+  - **El ancho de banda**: velocidad con la cual el sistema puede alimentar al procesador.
+- Para contrarrestar estas limitaciones, es importante explotar la localidad espacial y temporal de los datos: es decir, usar estructuras de datos correctamente para realizar la menor cantidad de accesos a RAM posible y realizar la mayor cantidad de caché hits posibles.
+
+## Arreglos multidimensionales y su organización en memoria
+
+### Arreglos
+
+- Los arreglos multidimensionales son la estructura de datos más usada en High Performance Computing. Las demás estructuras de datos (árboles, listas, grafos, etc) no se usan seguido ya que son menos eficientes en el contexto del paralelismo comparados a los arreglos.
+- Los datos de un arreglo multidimensional pueden ser almacenados en memoria por filas o por columnas.
+
+## Coherencia de caché
+
+## Costos de comunicación
+
+---
+
+<h1 align="center">Clase 3 - 28 de marzo, 2025</h1>
