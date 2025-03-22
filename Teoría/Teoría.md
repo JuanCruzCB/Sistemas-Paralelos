@@ -236,14 +236,71 @@ El procesamiento paralelo es fundamental por varias razones:
 
 ## Arreglos multidimensionales y su organización en memoria
 
-### Arreglos
+### Concepto
 
 - Los arreglos multidimensionales son la estructura de datos más usada en High Performance Computing. Las demás estructuras de datos (árboles, listas, grafos, etc) no se usan seguido ya que son menos eficientes en el contexto del paralelismo comparados a los arreglos.
 - Los datos de un arreglo multidimensional pueden ser almacenados en memoria por filas o por columnas.
+- Es ideal un arreglo que:
+  - No tenga tamaño máximo al ser declarado.
+  - Pueda organizarse por filas o columnas según el programador requiera.
+  - Sus datos estén en posiciones de memoria contiguas.
+  - Idealmente permita cambiar su tamaño en tiempo de ejecución.
 
-## Coherencia de caché
+### Definiciones de arreglo erróneas
+
+```c
+#define N 100
+
+float matriz[N][N];
+```
+
+- Tiene tamaño máximo.
+- No se puede elegir su organización.
+- No permite cambiar su tamaño en tiempo de ejecución.
+
+```c
+int n = 100;
+float matriz[N][N];
+```
+
+- Tiene tamaño máximo.
+- No se puede elegir su organización.
+- No permite cambiar su tamaño en tiempo de ejecución.
+
+```c
+#define N 100
+
+float ** matriz = malloc(N * sizeof(float*));
+for (i = 0; i < N; i++) {
+  matriz[i] = malloc..
+}
+```
+
+- No todos los datos están contiguos en memoria.
+
+### Definición de arreglo correcta
+
+```c
+#define N 100
+
+float * matriz = malloc(N * N * sizeof(float));
+```
+
+- Esta definición cumple las 4 condiciones.
+- Básicamente, se tiene un arreglo común (unidimensional), donde ciertas partes representan filas y otras columnas.
+- Aprovecha la localidad de datos.
+- Hace posible el uso de instrucciones SIMD.
+- Facilita el intercambio de arreglos entre programas escritos con distintos lenguajes.
+- Si la matriz está ordenada por filas, accedemos a la posición [i, j] con: `matriz[i * N + j]`
+- Si la matriz está ordenada por columnas, accedemos a la posición [i, j] con: `matriz[j * N + i]`
+
+## Coherencia de caché en arquitecturas multiprocesador
+
+###
 
 ## Costos de comunicación
+
+### 
 
 ---
 
