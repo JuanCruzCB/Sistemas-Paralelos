@@ -7,9 +7,9 @@
 #define TIMES 100
 #define N 10000000
 
-#define FA 1.0 f
-#define FB - 4.0000000 f
-#define FC 3.9999999 f
+#define FA 1.0f
+#define FB - 4.0000000f
+#define FC 3.9999999f
 
 #define DA 1.0
 #define DB - 4.0000000
@@ -48,10 +48,10 @@ int main(void) {
   for (j = 0; j < TIMES; j++)
     for (i = 0; i < N; i++) {
       //		flt_solve(fa[i], fb[i], fc[i]);
-      float d = powf(fb[i], 2.0 f) - 4.0 f * fa[i] * fc[i];
+      float d = powf(fb[i], 2.0f) - 4.0f * fa[i] * fc[i];
       float sd = sqrtf(d);
-      float r1 = (-fb[i] + sd) / (2.0 f * fa[i]);
-      float r2 = (-fb[i] - sd) / (2.0 f * fa[i]);
+      float r1 = (-fb[i] + sd) / (2.0f * fa[i]);
+      float r2 = (-fb[i] - sd) / (2.0f * fa[i]);
     }
 
   timef = dwalltime() - tick;
