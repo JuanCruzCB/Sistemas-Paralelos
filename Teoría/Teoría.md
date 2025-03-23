@@ -296,12 +296,101 @@ float * matriz = malloc(N * N * sizeof(float));
 
 ## Coherencia de caché en arquitecturas multiprocesador
 
-###
+### Concepto
+
+- En las máquinas de memoria compartida pueden existir muchas copias de un mismo dato, y resulta necesario mantener consistencia entre estas copias.
+- Un mecanismo de coherencia asegura que todas las operaciones realizadas sobre las múltiples copias son **serializables**, por ende debe haber algún orden de ejecución secuencial que se corresponde con la planificación paralela.
+
+### Protocolos de coherencia
+
+- Hay 2 protocolos de coherencia principales:
+- Asumimos que varios procesadores tienen una copia de la variable X en memoria principal de forma local, por ende inicialmente todos tienen el mismo valor.
+- **De invalidación**:
+  - Cuando un procesador modifica su X local, le dice a todos los demás procesadores que sus X's locales ya no son válidas, para que borren su valor y no lo usen.
+  - Además, se invalida el valor original de X de la memoria principal.
+  - Es el más usado.
+  - Se puede producir ocio ante la espera de actualización de un dato.
+- **De actualización**:
+  - Cuando un procesador modifica su X local, le envía a todos los demás procesadores el nuevo valor actualizado para que ellos actualicen su X local.
+  - Además, se actualiza el valor original de X en la memoria principal.
+  - Si un procesador lee un dato una vez y no lo vuelve a usar, este protocolo produce overheard innecesario.
+  - Si dos procesadores trabajan sobre la misma variable en forma alternada, este protocolo es la mejor opción, debido a que se evita/reduce el ocio por espera del dato actualizado.
+
+### Ejemplo de protocolo basado en invalidación
+
+- Cada copia puede tener uno de tres estados:
+- **Shared**: hay múltiples copias válidas del dato en distintas memorias. Ante una escritura, pasa a estado **dirty** donde se produjo, mientras que en el resto se marca como **invalid**.
+- **Dirty**: la copia es válida y se puede trabajar con la misma.
+- **Invalid**: la copia es inválida. Ante una lectura, se actualiza a partir de la copia **dirty**.
+
+### Implementación de protocolos de coherencia de caché
+
+#### Sistemas Snoopy
+
+- **Funcionamiento**:
+  - La caché de cada procesador mantiene un conjunto de tags asociados a sus bloques, los cuales determinan su estado.
+  - Todos los procesadores monitorean (snooping) el bus, lo cual permite realizar las transiciones de estado de sus bloques.
+  - Cuando el hardware snoopy detecta una **lectura** sobre un bloque dirty, toma el control del bus y cumple el pedido.
+  - Cuando el hardware snoopy detecta una **escritura** sobre un bloque de datos del cual tiene copia, entonces la marca como inválida.
+  - Si cada procesador opera sobre datos **disjuntos**, entonces los mismos pueden ser cacheados:
+    - Ante operaciones de escritura, el dato es marcado como dirty. Al no haber operaciones de otros procesadores, las siguientes peticiones se satisfacen localmente.- Ante operaciones de lectura, el dato es marcado como compartido (aún cuando sean varios procesadores). Las peticiones siguientes se satisfacen localmente en todos los casos.
+    - En ambos casos, el protocolo **no agrega overhead adicional**.
+  - Si diferentes procesadores realizan lecturas y escrituras sobre el mismo dato, se genera tráfico en el bus para poder mantener la coherencia de los datos.
+    - Tener en cuenta que al basarse en redes broadcast, el mensaje de coherencia les llegará todos los procesadores, aun cuando no tengan el dato en cuestión.
+    - Como el bus a su vez tiene un ancho de banda limitado, se convierte en un cuello de botella.
+- Se suele usar en sistemas multiprocesador interconectados vía red broadcast, como bus o anillo.
+- Se usa ampliamente en sistemas comerciales por ser un esquema simple, low cost y con buen rendimiento para operaciones locales.
+
+#### Sistemas basados en directorios
+
+- Se incorpora un directorio en memoria principal que guarda info de estado (bits de presencia + estado) sobre los bloques de caché y los procesadores donde están cacheados.
+- La información contenida en el directorio permite que **sólo aquellos procesadores que tienen un determinado dato queden involucrados en las operaciones de coherencia, mejorando la eficiencia**.
+- Al igual que con Snoopy, si los procesadores operan sobre datos disjuntos, las peticiones pueden cumplirse localmente, lo cual no agrega overhead.
+- Cuando múltiples procesadores leen y escriben los mismos datos, se generan operaciones de coherencia, lo cual provoca **overhead adicional por la necesidad de mantener actualizado el directorio**.
+  - Como el directorio está en memoria, si un programa paralelo requiere un gran número de operaciones de coherencia, se genera **overhead por la competencia en el acceso al recurso** (la memoria sólo puede satisfacer un número limitado de operaciones por unidad de tiempo).
+  - La cantidad de memoria requerida por el directorio **puede convertirse en un cuello de botella** a medida que el número de procesadores crece.
+- Como el directorio representa un punto centralizado de acceso (overhead por competencia), una solución posible es particionarlo → Sistemas basados en directorios distribuidos.
+
+#### Sistemas basados en directorios distribuidos
+
+- Se da en arquitecturas escalables, donde la memoria se encuentra **físicamente distribuida**.
+- Cada procesador es responsable de mantener la coherencia de sus propios bloques (mantiene su **propio directorio**).
+  - Cada bloque tiene un dueño.
+  - Cuando un procesador desea leer un bloque por primera vez, debe pedírselo al dueño, quien redirige el pedido de acuerdo a la información del directorio.
+  - Cuando un procesador escribe un bloque de memoria, **envía una invalidación al dueño**, quien luego la propaga a todos aquellos que tienen una copia.
+- Como el directorio está distribuido, la competencia en el acceso al mismo se alivia, por ende es un sistema **más escalable**.
+- Ahora el **cuello de botella** pasa a ser la latencia y el ancho de banda de la red de interconexión.
 
 ## Costos de comunicación
 
-### 
+- Uno de los mayores **overheads en los programas paralelos proviene de la comunicación entre unidades de procesamiento**.
+- El costo de la comunicación depende de múltiples factores y no sólo del medio físico:
+  - Modelo de programación.
+  - Topología de red.
+  - Manejo y ruteo de datos.
+  - Protocolos de software asociados.
+- Los costos son diferentes según la **forma de comunicación**:
+  - Para pasaje de mensajes, el costo es: `t_comm = t_s + m * t_w` donde:
+    - t_s es el tiempo requerido para preparar el mensaje.
+    - m es el tamaño del mensaje en words.
+    - t_w es el tiempo requerido para transmitir una word.
+  - Para memoria compartida resulta difícil modelar el costo debido a varios factores fuera del control del programador:
+    - Los tiempos de acceso dependen de la ubicación del dato.
+    - El overhead de los protocolos de coherencia son difíciles de estimar.
+    - La localidad espacial es difícil de modelar.
+    - Competencia generada por accesos compartidos depende de la planificación en ejecución.
+    - Etc.
 
 ---
 
 <h1 align="center">Clase 3 - 28 de marzo, 2025</h1>
+
+## ?
+
+---
+
+<h1 align="center">Clase 4 - 4 de abril, 2025</h1>
+
+## ?
+
+---
