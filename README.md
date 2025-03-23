@@ -7,19 +7,9 @@
 - [Material de la cátedra](https://ideas.info.unlp.edu.ar/sistemas-paralelos-2025/Contents/Material/View/Show?idCourseTool=30e0e6e4-27f5-11e6-b67b-9e71128cae77)
 - [Weblidi de la cátedra](https://weblidi.info.unlp.edu.ar/catedras/paralela/index.html)
 - [Link clases virtuales de los martes](https://infolp.webex.com/infolp/j.php?MTID=m1cea8162413ac7baf8a09f2b1f02306e)
+- [Otros repositorios](https://github.com/search?q=sistemas+paralelos+unlp&type=repositories&s=updated&o=desc)
+- [Clases teóricas](https://youtube.com/playlist?list=PLDJU8kNAPOn9P_5xHTw9uGac2VIpuQwkY&si=7x3C2Ij3boeq3pGO)
 - Contacto: sparalelos@lidi.info.unlp.edu.ar
-
-### Clases teóricas
-
-- [Clase 1](https://youtu.be/3mOEJXb56Tk)
-- [Clase 2](https://youtu.be/8rv0RwBZTTM)
-- [Clase 3](https://youtu.be/G1RWaqJJm8c)
-- [Clase 4](https://youtu.be/iCQ1bYrTqL4)
-- [Clase 5](https://youtu.be/NW32QGI-YfI)
-- [Clase 6](https://youtu.be/l7bEwmsuB3s)
-- [Clase 7](https://youtu.be/dLxH_MUOgQg)
-- [Clase 8](https://youtu.be/BLgK0IivsIs)
-- [Clase 9](https://youtu.be/4CraVVeh8eI)
 
 ## Cómo se aprueba la cursada?
 
