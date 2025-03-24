@@ -51,10 +51,11 @@ int main(int argc, char * argv[]) {
     timetick = dwalltime();
 
     for (i = 0; i < N; i++) {
-      for (j = 0; j < N; j++) {
+      for (k = 0; k < N; k++) {
         double suma = 0.0;
-        for (k = 0; k < N; k++) {
-          suma += (A[i * N + k] * B[k * N + j]);
+        double valorA = A[i * N + k];
+        for (j = 0; j < N; j++) {
+          suma += valorA * B[k * N + j];
         }
         C[i * N + j] = suma;
       }
@@ -81,10 +82,11 @@ int main(int argc, char * argv[]) {
     timetick = dwalltime();
 
     for (i = 0; i < N; i++) {
-      for (j = 0; j < N; j++) {
+      for (k = 0; k < N; k++) {
         double suma = 0.0;
-        for (k = 0; k < N; k++) {
-          suma += (A[i + k * N] * B[k + j * N]);
+        double valorA = A[i + k * N];
+        for (j = 0; j < N; j++) {
+          suma += valorA * B[k + j * N];
         }
         C[i + j * N] = suma;
       }
