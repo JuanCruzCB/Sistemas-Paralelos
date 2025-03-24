@@ -52,12 +52,10 @@ int main(int argc, char * argv[]) {
 
     for (i = 0; i < N; i++) {
       for (k = 0; k < N; k++) {
-        double suma = 0.0;
         double valorA = A[i * N + k];
         for (j = 0; j < N; j++) {
-          suma += valorA * B[k * N + j];
+          C[i * N + j] += valorA * B[k * N + j];
         }
-        C[i * N + j] = suma;
       }
     }
 
@@ -83,12 +81,10 @@ int main(int argc, char * argv[]) {
 
     for (i = 0; i < N; i++) {
       for (k = 0; k < N; k++) {
-        double suma = 0.0;
         double valorA = A[i + k * N];
         for (j = 0; j < N; j++) {
-          suma += valorA * B[k + j * N];
+          C[i + j * N] += valorA * B[k + j * N];
         }
-        C[i + j * N] = suma;
       }
     }
 
