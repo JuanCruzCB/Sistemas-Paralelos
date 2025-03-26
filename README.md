@@ -9,6 +9,7 @@
 - [Link clases virtuales de los martes](https://infolp.webex.com/infolp/j.php?MTID=m1cea8162413ac7baf8a09f2b1f02306e)
 - [Otros repositorios](https://github.com/search?q=sistemas+paralelos+unlp&type=repositories&s=updated&o=desc)
 - [Clases teóricas](https://youtube.com/playlist?list=PLDJU8kNAPOn9P_5xHTw9uGac2VIpuQwkY&si=7x3C2Ij3boeq3pGO)
+- [Documento TP1](https://docs.google.com/document/d/1sY2X6lVUpQkRKpv-6spbJA3YMryvHexqKmXvl0BUPf0/edit?usp=sharing)
 - Contacto: sparalelos@lidi.info.unlp.edu.ar
 
 ## Cómo se aprueba la cursada?
