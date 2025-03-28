@@ -385,7 +385,57 @@ float * matriz = malloc(N * N * sizeof(float));
 
 <h1 align="center">Clase 3 - 28 de marzo, 2025</h1>
 
-## ?
+## Programación en memoria compartida
+
+### Concepto
+
+- Espacio de datos común.
+- Módulos globales vs locales.
+- UMA vs NUMA.
+- Se necesita un mecanismo de coherencia de caché
+- FOrma de programar: memoria compartida o pasaje de mensajes.
+
+### Sincronización
+
+- Es responsabilidad del dev.
+- Toda sinc. reduce efiicencia.
+- LOcalidad de datos es clave en el rendimiento, sobre todo en NUMA.
+
+### Hilos
+
+### Ventajas de los hilos por sobre los procesos
+
+## POSIX Threads (PThreads)
+
+### Rutinas
+
+### Creación de hilos
+
+### Terminación de hilos
+
+### Join de hilos
+
+- Una vez POR CADA HILO. No una vez para todos los hilos.
+
+### Ejemplo básico de Hello World
+
+### Pasaje de parámetros
+
+### Exclusión mutua
+
+-
+
+#### Tipos de locks
+
+### Sincronización por condición
+
+### Barreras
+
+### Semáforos
+
+- Se pueden usar tanto para mutex como para sinc. por cond.
+
+### PLanificación de hilos
 
 ---
 
