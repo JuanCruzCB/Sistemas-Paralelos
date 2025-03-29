@@ -387,29 +387,74 @@ float * matriz = malloc(N * N * sizeof(float));
 
 ## Programación en memoria compartida
 
-### Concepto
+### Concepto de las plataformas de memoria compartida
 
-- Espacio de datos común.
-- Módulos globales vs locales.
-- UMA vs NUMA.
-- Se necesita un mecanismo de coherencia de caché
-- FOrma de programar: memoria compartida o pasaje de mensajes.
+- Los procesadores usan un espacio de datos común.
+- Los módulos de memoria pueden ser locales o globales.
+- El acceso a memoria puede ser UMA (todos los procesadores están a la misma distancia de la memoria) o NUMA (algunos procesadores están "más cerca" de la memoria).
+- Se necesita un mecanismo de coherencia de caché.
+- Forma de programar: memoria compartida o pasaje de mensajes.
 
 ### Sincronización
 
-- Es responsabilidad del dev.
-- Toda sinc. reduce efiicencia.
-- LOcalidad de datos es clave en el rendimiento, sobre todo en NUMA.
+- Es responsabilidad del programador.
+- Toda sincronización reduce la eficiencia.
+- La localidad de datos es clave en el rendimiento, sobre todo en NUMA.
+- En algunos lenguajes el programador puede actuar sobre la localidad de los datos, en otros tendrá que re-estructurar el código.
+- El programador no suele manejar la distribución de los datos ni lo relacionado a la comunicación de éstos:
+  - La bueno de esto es la transparencia, la ubicación de los datos, su replicación y su migración son transparentes.
+  - Lo malo de esto es que a veces es necesario trabajar sobre esos aspectos para mejorar el rendimiento. Además, resulta difícil la predicción de la performance a partir de leer el algoritmo.
+
+### Soporte para concurrencia y sincronización
+
+- Los distintos modelos de programación proveen un soporte para expresar la concurrencia y sincronización:
+  - Los modelos basados en **procesos** suponen datos locales (privados) de cada proceso.
+  - Los modelos basados en threads o procesos “livianos" suponen que toda la memoria es global → **Pthreads**.
+  - Los modelos basados en directivas extienden el modelo basado en threads para facilitar su manejo (creación, sincronización, etc) → **OpenMP**
 
 ### Hilos
 
-### Ventajas de los hilos por sobre los procesos
+- Un thread es un único hilo de control en el flujo de un programa.
+- Todos los hilos tienen acceso a una memoria compartida global.
+- Los hilos a su vez tienen su propio espacio de memoria privada.
+
+#### Ventajas de los hilos por sobre los procesos
+
+- **Liviandad → Rendimiento**:
+  - Los hilos son más livianos que los procesos.
+  - Su intercomunicación es más rápida por compartir memoria y su cambio de contexto resulta menos costoso.
+- **Ocultamiento de latencia → Multi-tasking**:
+  - Múltiples hilos en ejecución contribuyen a reducir la latencia ocasionada por los accesos a memoria, la E/S y la comunicación.
+- **Planificación y balance de carga**:
+  - Las APIs de hilos suelen permitir la creación de una gran cantidad de tareas concurrentes, que luego pueden ser mapeadas dinámicamente a través de primitivas a nivel de sistema → minimiza el overhead por ociosidad.
+  - Al mismo tiempo, facilita la distribución de trabajo ante cargas irregulares.
+- **Facilidad de programación y uso extendido**:
+  - Más fácil de programar que pasaje de mensajes (no requiere el manejo de la comunicación de
+    datos).
+- **Portabilidad**:
+  - Permite migrar aplicaciones entre arquitecturas.
+  - Útil para desarrollo.
 
 ## POSIX Threads (PThreads)
 
+### Concepto
+
+- Hasta mediados de los años 90, existían numerosas APIs para el manejo de hilos (incompatibles entre ellas).
+- En 1995, IEEE especifica el estándar POSIX Threads (normalmente llamado Pthreads). Básicamente, un conjunto de tipos de datos y funciones para el lenguaje de programación C.
+- POSIX se ha establecido como una API estándar para manejo de Threads, provista por la mayoría de los desarrolladores de sistemas operativos.
+- Los conceptos que se discutirán son independientes de la API y son mayormente válidos para utilizar hilos en Java, Python, Go, etc.
+
 ### Rutinas
 
+Pthreads usa 3 tipos de rutinas distintas:
+
+- Manejo de threads.
+- Mutexes.
+- Variables condición.
+
 ### Creación de hilos
+
+- 
 
 ### Terminación de hilos
 
