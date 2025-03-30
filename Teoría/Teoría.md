@@ -454,33 +454,215 @@ Pthreads usa 3 tipos de rutinas distintas:
 
 ### Creación de hilos
 
-- 
+- Al inicio hay un solo hilo, el cual se suele llamar hilo main o master.
+- Todos los demás los crea el programador.
+- Los hilos pueden crear otros hilos.
+- La creación se realiza con `pthread_create()`:
+
+```c
+int pthread_create(pthread_t *thread_handle, const pthread_attr_t *attribute, void * (*thread_function)(void *), void *arg);
+```
+
+- **thread_handle** es la dirección de un objeto pthread_t, que representa al hilo en sí.
+- **attribute** es la dirección de un objeto pthread_attr. Es NULL para valores por defecto.
+- **thread_function** es la función que ejecutará el hilo creado una vez comience su ejecución.
+- **arg** es el único argumento que se le puede pasar de forma directa al hilo creado.
 
 ### Terminación de hilos
 
+- Para terminar su ejecución, los hilos invocan a `pthread_exit()`.
+- Esta función finaliza la ejecución del hilo y retorna un valor que puede ser posteriormente leído por otro hilo (en general el hilo que lo creó).
+
+```c
+int pthread_exit(void *res);
+```
+
 ### Join de hilos
 
-- Una vez POR CADA HILO. No una vez para todos los hilos.
+- Para sincronizar al hilo padre con el hilo hijo una vez que el hijo termina, se usa `pthread_join()`.
+- Esta función bloquea al hilo llamador hasta que el hilo especificado como argumento termine su ejecución.
+- Se debe usar una vez por cada hilo hijo. No una vez para todos.
 
 ### Ejemplo básico de Hello World
 
+```c
+#include <stdio.h>
+#include <pthread.h>
+
+#define NUM_THREADS 10
+
+void * hello_world(void *ptr);
+
+void * hello_world(void *ptr) {
+  int *p, id;
+  p = (int *) ptr;
+  id = *p;
+
+  printf("\n¡Hola mundo! Soy el hilo %d", id);
+
+  pthread_exit(0);
+}
+
+int main() {
+  int i, ids[NUM_THREADS];
+  pthread_attr_t attr;
+  pthread_t threads[NUM_THREADS];
+
+  pthread_attr_init(&attr);
+
+  for(i = 0; i < NUM_THREADS; i++) {
+    ids[i] = i;
+    pthread_create(&threads[i], &attr, hello_world, &ids[i]);
+  }
+
+  for(i = 0; i < NUM_THREADS; i++) {
+    pthread_join(threads[i], NULL)
+  }
+
+  return 0;
+}
+```
+
 ### Pasaje de parámetros
+
+- Si se quieer pasar varios parámetros a cada hilo, hay 2 alternativas:
+  - Pasarle un **struct** a cada hilo que contenga todos los argumentos que necesita.
+  - Mantener uno o más arreglos globales y pasarle el id a cada hilo para que sepa a qué posición debe acceder.
 
 ### Exclusión mutua
 
--
+- Las secciones críticas en Pthreads se implementan usando **mutex_locks**, los cuales realizan bloqueo por exclusión mutua.
+- Los **mutex_locks** tienen dos estados: locked y unlocked. En cualquier instante, solo un hilo puede bloquear un mutex_lock: lock es una operación atómica.
+- Para poder entrar en la sección crítica un hilo debe lograr tener control del mutex_lock, es decir bloquearlo.
+- Cuando un hilo sale de la sección crítica debe desbloquear el mutex_lock.
+- Todos los mutex_locks deben inicializarse como desbloqueados.
+
+```c
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *lock_attr);
+int pthread_mutex_lock(pthread_mutex_t *mutex);
+int pthread_mutex_unlock(pthread_mutex_t *mutex);
+```
 
 #### Tipos de locks
 
+Pthreads soporta tres tipos de locks (este tipo se especifica en los atributos del mutex en su inicialización):
+
+- **Normal lock**: no permite que un hilo que lo tienen bloqueado vuelva a hacer un lock sobre él, produce deadlock.
+- **Recursive lock**: sí permite que un hilo que lo tienen bloqueado vuelva a hacer un lock sobre él, incrementa una cuenta de control.
+- **Error Check lock**: responde con un reporte de error al intento de un segundo bloqueo por el mismo hilo.
+
+#### Overhead en el uso de locks
+
+- Si dentro de las secciones críticas se incluyen porciones de código costosas se tendrá una gran degradación del rendimiento.
+- Esto se puede contrarrestar usando la función **pthread_mutex_trylock**, la cual retorna el control informando si pudo hacer o no el lock: `int pthread_mutex_trylock(pthread_mutex_t *mutex_lock);`
+- Esta función evita tiempos ociosos pero no siempre es viable usarlo.
+
 ### Sincronización por condición
+
+#### Concepto
+
+- Los locks pueden provocar busy-waiting.
+- Una solución posible a esto es usar variables condición, las cuales usan sincronización por condición.
+- Estas variables permiten que uno o más hilos se **autobloqueen** hasta que se alcance un cierto estado del programa.
+- Cada variable condición tiene un predicado (estado). Cuando este predicado se convierte en True, la variable se usa para avisar a el o los hilos que están esperando por el cambio de estado de la condición.
+- Una variable condición puede asociarse a varios predicados, aunque no es lo recomendado.
+- Una variable condición siempre tiene un lock asociado. Cada hilo bloquea este lock y evalúa el predicado.
+  - Si el predicado es falso, el hilo espera en la variable condición: se "duerme" por lo que no usa CPU y evita busy-waiting por completo.
+
+#### Wait y Timedwait
+
+```c
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+```
+
+- Llamar a la función bloquea al hilo hasta que reciba una señal de otro hilo o sea interrumpido por el SO.
+- Para poder invocarla, el hilo debe tener el control del mutex asociado.
+- Una vez dormido en la vc, el mutex se libera.
+- Cuando el hilo recibe una señal y se despierta, espera a que el mutex esté disponible para continuar su ejecución.
+- Timedwait duerme al hilo una determinada cantidad de tiempo como máximo.
+
+#### Signal y Broadcast
+
+```c
+int pthread_cond_signal(pthread_cond_t *cond);
+int pthread_cond_broadcast(pthread_cond_t *cond);
+```
+
+- Llamar a la función despierta a un hilo que esté dormido en la vc (cuál hilo depende de las políticas de scheduling).
+- Para poder invocarla, el hilo debe tener el control del mutex asociado.
+- El mutex asociado se libera.
+- Broadcast **despierta a todos** los hilos que están dormidos en la vc.
+
+#### Init y Destroy
+
+```c
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+int pthread_cond_destroy(pthread_cond_t *cond);
+```
 
 ### Barreras
 
+```c
+int pthread_barrier_init(pthread_barrier_t *restrict barrier, const pthread_barrierattr_t *restrict attr, unsigned count);
+int pthread_barrier_wait(pthread_barrier_t *barrier);
+int pthread_barrier_destroy(pthread_barrier_t *barrier);
+```
+
+- Las barreras son puntos de sincronización que involucran a múltiples hilos.
+- El hilo llamador se bloquea hasta que el número de hilos implicados en la barrera hayan alcanzado este punto.
+- La cantidad de hilos asociados a la barrera se especifica en su inicialización.
+-
+
 ### Semáforos
 
-- Se pueden usar tanto para mutex como para sinc. por cond.
+- Un semáforo es una estructura de datos que permite sincronizar hilos (tanto para exclusión mutua como para sinc. por cond.).
+- Los tipos de datos y funciones para usar semáforos se encuentran en semaphore.h.
+- Para declarar un semáforo se usa el tipo sem_t.
+- Se pueden usar tanto para mutex como para sincronización por condición.
+- Inicialización:
 
-### PLanificación de hilos
+```c
+int sem_init(sem_t *sem, int pshared, unsigned int value);
+```
+
+- Decrementar un semáforo (P):
+
+```c
+int sem_wait(sem_t *sem);
+```
+
+- Incrementar un semáforo (V):
+
+```c
+int sem_post(sem_t *sem);
+```
+
+### Planificación de hilos
+
+- Si bien el SO es responsable de planificar la ejecución de los hilos, el programador puede influenciar esto usando los **atributos de planificación**.
+- El scheduler mantiene una cola separada de hilos por cada prioridad definida.
+- Al momento de seleccionar un hilo para ejecutar, se elige alguno que esté listo de la cola que tenga mayor prioridad.
+- Si hay varios hilos posibles en la cola seleccionada, se elige uno de ellos de acuerdo a la política de scheduling.
+- Para asignar y recuperar los **atributos de planificación**, tenemos las funciones:
+
+```c
+int pthread_attr_setschedparam(pthread attr_t *attr, const struct sched param *param);
+int pthread_attr_getschedparam(const pthread_attr_t *attr, struct sched param *param);
+```
+
+- Para asignar y recuperar la prioridad min y max de una determinada política de scheduling:
+
+```c
+int sched_get_priority_min(int policy);
+int sched_get_priority_max(int policy);
+```
+
+- La política de scheduling determina cómo se ejecutan y comparten recursos los hilos de una misma prioridad.
+- Pthreads soporta tres políticas diferentes:
+  - **SCHED_FIFO (First In First Out)**: una vez en ejecución, el hilo se ejecuta hasta que termina, se bloquea o hasta que un hilo de mayor prioridad pueda ejecutarse. Los hilos de la misma prioridad son ejecutados **en orden**.
+  - **SCHED_RR (Round Robin)**: similar al anterior pero los hilos se ejecutan a lo sumo una determinada cantidad de tiempo (configurable).
+  - **SCHED_OTHER**: política adicional no definida en el estándar. Su funcionamiento depende enteramente de la implementación.
 
 ---
 
