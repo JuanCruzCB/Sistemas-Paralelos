@@ -62,7 +62,7 @@ int main(int argc, char * argv[]) {
       ((N = atoi(argv[1])) <= 0) ||
       ((block_size = atoi(argv[2])) <= 0) ||
       (block_size > N) ||
-      (N % block_size == 0) ||
+      (N % block_size != 0) ||
       (imprimir_matrices = atoi(argv[3])) < 0 ||
       (imprimir_matrices = atoi(argv[3])) > 1
     ) {
@@ -137,15 +137,15 @@ int main(int argc, char * argv[]) {
 
     // Resolver [A * B] y guardarlo en una matriz auxiliar mul1.
     // Resolver [C * B^T] y guardarlo en una matriz auxiliar mul2.
-    for (i = 0; i < N; i++) {
-        for (int k = 0; k < N; k++) {
-            for (j = 0; j < N; j++) {
+    for (i = 0; i < N; i += block_size) {
+        for (int k = 0; k < N; k += block_size) {
+            for (j = 0; j < N; j += block_size) {
                 // Multiplicación por bloques.
                 for (x = 0; x < block_size; x++) {
                     for (y = 0; y < block_size; y++) {
                         for (z = 0; z < block_size; z++) {
-                            mul1[i * N + j] = A[x * N + z] * B[z * N + y];
-                            mul2[i * N + j] = C[x * N + z] * B[y * N + z];
+                            mul1[x * N + y] += A[x * N + z] * B[y * N + z];
+                            mul2[x * N + y] += C[x * N + z] * B[z * N + y];
                         }
                     }
                 }
