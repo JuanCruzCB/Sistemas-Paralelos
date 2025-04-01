@@ -141,9 +141,9 @@ int main(int argc, char * argv[]) {
         for (int k = 0; k < N; k++) {
             for (j = 0; j < N; j++) {
                 // Multiplicación por bloques.
-                for (x = 0; x < bs; x++) {
-                    for (y = 0; y < bs; y++) {
-                        for (z = 0; z < bs; z++) {
+                for (x = 0; x < block_size; x++) {
+                    for (y = 0; y < block_size; y++) {
+                        for (z = 0; z < block_size; z++) {
                             mul1[i * N + j] = A[x * N + z] * B[z * N + y];
                             mul2[i * N + j] = C[x * N + z] * B[y * N + z];
                         }
