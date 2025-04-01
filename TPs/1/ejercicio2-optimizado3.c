@@ -28,6 +28,22 @@ double dwalltime() {
     return sec;
 }
 
+
+/* Multiply (block)submatrices */
+void blkmul(double * bloque_a, double * bloque_b, double * bloque_c, double * mult1, double * mult2, int n, int bs) {
+  int i, j, k; 
+
+  for (i = 0; i < bs; i++) {
+    for (j = 0; j < bs; j++) {
+      for (k = 0; k < bs; k++) {    
+        mult1[i * n + j] += bloque_a[i * n + k] * bloque_b[k * n + j];
+        mult2[i * n + j] += bloque_c[i * n + k] * bloque_b[j * n + k];
+      }
+    }
+  }
+}
+
+
 int main(int argc, char * argv[]) {
   	int imprimir_matrices = -1;
     int N = -1; 						// Tamaño de las matrices cuadradas (N * N).
@@ -138,18 +154,11 @@ int main(int argc, char * argv[]) {
     // Resolver [A * B] y guardarlo en una matriz auxiliar mul1.
     // Resolver [C * B^T] y guardarlo en una matriz auxiliar mul2.
     for (i = 0; i < N; i += block_size) {
-        for (int k = 0; k < N; k += block_size) {
             for (j = 0; j < N; j += block_size) {
-                // Multiplicación por bloques.
-                for (x = 0; x < block_size; x++) {
-                    for (y = 0; y < block_size; y++) {
-                        for (z = 0; z < block_size; z++) {
-                            mul1[x * N + y] += A[x * N + z] * B[y * N + z];
-                            mul2[x * N + y] += C[x * N + z] * B[z * N + y];
-                        }
-                    }
+                for (int k = 0; k < N; k += block_size) {
+                    // Multiplicación por bloques.
+                    blkmul( & A[i * N + k], & B[j * N + k], & C[i * N + j], &mul1[i * N + j], &mul2[i * N + j], N, block_size);
                 }
-            }
         }
     }
 
