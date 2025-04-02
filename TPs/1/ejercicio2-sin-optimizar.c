@@ -5,16 +5,14 @@
 #include <stdlib.h>
 
 
-// Genera valores random entre a y b
 int random_entre_a_b(int a, int b) {
     return a + rand() % (b - a + 1);
 }
 
-// Imprime matrices
 void imprimir_matriz(double * A, int N, int por_fila) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-          	if(por_fila) printf("%8.2f ", A[i * N + j]);
+          	if (por_fila) printf("%8.2f ", A[i * N + j]);
           	else printf("%8.2f ", A[j * N + i]);
         }
         printf("\n");
@@ -22,7 +20,6 @@ void imprimir_matriz(double * A, int N, int por_fila) {
     printf("\n");
 }
 
-// Para calcular tiempo
 double dwalltime() {
     double sec;
     struct timeval tv;
@@ -31,14 +28,14 @@ double dwalltime() {
     return sec;
 }
 
-int main(int argc, char * argv[]) {  
-    int imprimir_matrices = -1;
-    int N = -1; 					// Tamaño de las matrices cuadradas (N * N).
-    int i, j; 						// Índices para recorrer las matrices → i para fila; j para columna.
-    double * A, * B, * B_t, * C, * R; 			// Matrices A, B, B^t, C, R.
+int main(int argc, char * argv[]) {
+    int imprimir_matrices = -1;         // Indica si se deben imprimir las matrices o no.
+    int N = -1; 					    // Tamaño de las matrices cuadradas (N * N).
+    int i, j; 						    // Índices para recorrer las matrices → i para fila; j para columna.
+    double * A, * B, * C, * R; 			// Matrices A, B, C, R.
     double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
-    double * mul1; 					// Matriz auxiliar que almacenará el resultado de A * B.
-    double * mul2; 					// Matriz auxiliar que almacenará el resultado de C * B^T.
+    double * mul1; 					    // Matriz auxiliar que almacenará el resultado de A * B.
+    double * mul2; 					    // Matriz auxiliar que almacenará el resultado de C * B^T.
     double timetick; 					// Se usa para medir el tiempo.
     double maxA = -1.0;					// Valor máximo de la matriz A.
     double maxB = -1.0;					// Valor máximo de la matriz B.
@@ -53,23 +50,21 @@ int main(int argc, char * argv[]) {
 
     // Se debe enviar el N como argumento. Si no se envía, alertar y terminar.
     if (
-      (argc != 3) || 
-      ((N = atoi(argv[1])) <= 0) || 
-      (imprimir_matrices = atoi(argv[2])) < 0 ||
-      (imprimir_matrices = atoi(argv[2])) > 1
+        (argc != 3) ||
+        ((N = atoi(argv[1])) <= 0) ||
+        (imprimir_matrices = atoi(argv[2])) < 0 ||
+        (imprimir_matrices = atoi(argv[2])) > 1
     ) {
         printf("\nSe deben enviar 2 parámetros:\n");
         printf("El N de la dimensión de las matrices, y un 0 o 1 indicando si se quiere imprimir las matrices o no.\n");
-      	printf("Ejemplo si se quiere imprimir: \n ./test 4 1\n");
+      	printf("Ejemplo con N = 4 y con impresión: \n ./test 4 1\n");
         exit(1);
     }
 
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     A = (double * ) malloc(N * N * sizeof(double));
     B = (double * ) malloc(N * N * sizeof(double));
-    B_t = (double * ) malloc(N * N * sizeof(double));
     C = (double * ) malloc(N * N * sizeof(double));
-    
     R = (double * ) malloc(N * N * sizeof(double));
     mul1 = (double * ) malloc(N * N * sizeof(double));
     mul2 = (double * ) malloc(N * N * sizeof(double));
@@ -77,9 +72,8 @@ int main(int argc, char * argv[]) {
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            A[i * N + j] = random_entre_a_b(1, 64);;
+            A[i * N + j] = random_entre_a_b(1, 64);
             B[i * N + j] = random_entre_a_b(1, 64);
-            B_t[j * N + i] = B[i * N + j];
             C[i * N + j] = random_entre_a_b(1, 64);
             R[i * N + j] = 0.0;
             mul1[i * N + j] = 0.0;
@@ -87,8 +81,8 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    // Imprimir las matrices
-    if (imprimir_matrices)   {
+    // Imprimir las matrices.
+    if (imprimir_matrices) {
       printf("Matriz A:\n");
       imprimir_matriz(A, N, 1);
 
@@ -136,7 +130,7 @@ int main(int argc, char * argv[]) {
         for (j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
                 mul1[i * N + j] += A[i * N + k] * B[k * N + j];
-                mul2[i * N + j] += C[i * N + k] * B_t[k * N + j];
+                mul2[i * N + j] += C[i * N + k] * B[j * N + k];
             }
         }
     }
@@ -150,7 +144,7 @@ int main(int argc, char * argv[]) {
 
     // Terminar de medir el tiempo.
     printf("Tiempo que llevó computar la ecuación con N = %d ---> %f.\n\n", N, dwalltime() - timetick);
-	
+
     if (imprimir_matrices) {
       printf("Impresion de matriz A*B\n");
       imprimir_matriz(mul1, N, 1);
@@ -159,8 +153,7 @@ int main(int argc, char * argv[]) {
       printf("Impresion de matriz R resultado\n");
       imprimir_matriz(R, N, 1);
     }
-  	
-	
+
     printf("Valor máximo de A: %f\n", maxA);
     printf("Valor máximo de B: %f\n", maxB);
 
@@ -175,7 +168,6 @@ int main(int argc, char * argv[]) {
     // Liberar la memoria que alocamos a las matrices al inicio.
     free(A);
     free(B);
-    free(B_t);
     free(C);
     free(R);
     free(mul1);
