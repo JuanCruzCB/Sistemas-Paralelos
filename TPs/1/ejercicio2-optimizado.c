@@ -93,7 +93,7 @@ int main(int argc, char * argv[]) {
         for (j = 0; j < N; j++) {
             A[i * N + j] = random_entre_a_b(1, 64);
             B[i * N + j] = random_entre_a_b(1, 64);
-            B_t[j * N + i] = B[i * N + j];
+            B_T[j * N + i] = B[i * N + j];
             C[i * N + j] = random_entre_a_b(1, 64);
             R[i * N + j] = 0.0;
             mul1[i * N + j] = 0.0;
