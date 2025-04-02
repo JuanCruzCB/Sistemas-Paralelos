@@ -61,7 +61,6 @@ int main(int argc, char * argv[]) {
     double celdaB = 0.0;				// Celda temporal de la matriz B.
 
     int block_size = -1;                // Tamaño del bloque para la multiplicación por bloques.
-    int x, y, z; 						// Índices para recorrer las matrices → x para fila; y para columna; z para el bloque.
 
     // Se debe enviar el N como argumento. Si no se envía, alertar y terminar.
     if (
