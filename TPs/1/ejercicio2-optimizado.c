@@ -91,10 +91,10 @@ int main(int argc, char * argv[]) {
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            A[i * N + j] = random_entre_a_b(1, 64);
-            B[i * N + j] = random_entre_a_b(1, 64);
+            A[i * N + j] = random_entre_a_b(1, 4);
+            B[i * N + j] = random_entre_a_b(1, 4);
             B_T[j * N + i] = B[i * N + j];
-            C[i * N + j] = random_entre_a_b(1, 64);
+            C[i * N + j] = random_entre_a_b(1, 4);
             R[i * N + j] = 0.0;
             mul1[i * N + j] = 0.0;
             mul2[i * N + j] = 0.0;
