@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 
+
 int random_entre_a_b(int a, int b) {
     return a + rand() % (b - a + 1);
 }
@@ -11,7 +12,7 @@ int random_entre_a_b(int a, int b) {
 void imprimir_matriz(double * A, int N, int por_fila) {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-          	if(por_fila) printf("%8.2f ", A[i * N + j]);
+          	if (por_fila) printf("%8.2f ", A[i * N + j]);
           	else printf("%8.2f ", A[j * N + i]);
         }
         printf("\n");
@@ -19,7 +20,6 @@ void imprimir_matriz(double * A, int N, int por_fila) {
     printf("\n");
 }
 
-// Para calcular tiempo
 double dwalltime() {
     double sec;
     struct timeval tv;
@@ -28,27 +28,23 @@ double dwalltime() {
     return sec;
 }
 
+void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int block_size) {
+    int i, j, k;
 
-/* Multiply (block)submatrices */
-void blkmul(double * bloque_a, double * bloque_b, double * bloque_c, double * mult1, double * mult2, int n, int bs) {
-  int i, j, k; 
-
-  for (i = 0; i < bs; i++) {
-    for (j = 0; j < bs; j++) {
-      for (k = 0; k < bs; k++) {    
-        mult1[i * n + j] += bloque_a[i * n + k] * bloque_b[k * n + j];
-        mult2[i * n + j] += bloque_c[i * n + k] * bloque_b[j * n + k];
-      }
+    for (i = 0; i < block_size; i++) {
+        for (j = 0; j < block_size; j++) {
+            for (k = 0; k < block_size; k++) {
+                bloque_resultado[i * n + j] += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
+            }
+        }
     }
-  }
 }
 
-
 int main(int argc, char * argv[]) {
-  	int imprimir_matrices = -1;
+  	int imprimir_matrices = -1;         // Indica si se deben imprimir las matrices o no.
     int N = -1; 						// Tamaño de las matrices cuadradas (N * N).
-    int i, j; 							// Índices para recorrer las matrices → i para fila; j para columna.
-    double * A, * B, * C, * R; 			// Matrices A B C R.
+    int i, j, k; 						// Índices para recorrer las matrices → i para fila; j para columna.
+    double * A, * B, * B_T, * C, * R;   // Matrices A, B, B^T, C, R.
     double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
     double * mul1; 						// Matriz auxiliar que almacenará el resultado de A * B.
     double * mul2; 						// Matriz auxiliar que almacenará el resultado de C * B^T.
@@ -64,33 +60,29 @@ int main(int argc, char * argv[]) {
     double celdaA = 0.0;				// Celda temporal de la matriz A.
     double celdaB = 0.0;				// Celda temporal de la matriz B.
 
-    double sumaAux1 = 0.0;
-    double sumaAux2 = 0.0;
-    double valorA, valorC = 0.0;
-
     int block_size = -1;                // Tamaño del bloque para la multiplicación por bloques.
-
     int x, y, z; 						// Índices para recorrer las matrices → x para fila; y para columna; z para el bloque.
 
     // Se debe enviar el N como argumento. Si no se envía, alertar y terminar.
-   if (
-      (argc != 4) ||
-      ((N = atoi(argv[1])) <= 0) ||
-      ((block_size = atoi(argv[2])) <= 0) ||
-      (block_size > N) ||
-      (N % block_size != 0) ||
-      (imprimir_matrices = atoi(argv[3])) < 0 ||
-      (imprimir_matrices = atoi(argv[3])) > 1
+    if (
+        (argc != 4) ||
+        ((N = atoi(argv[1])) <= 0) ||
+        ((block_size = atoi(argv[2])) <= 0) ||
+        (block_size > N) ||
+        (N % block_size != 0) ||
+        (imprimir_matrices = atoi(argv[3])) < 0 ||
+        (imprimir_matrices = atoi(argv[3])) > 1
     ) {
         printf("\nSe deben enviar 3 parámetros:\n");
         printf("El N de la dimensión de las matrices, el tamaño del bloque y un 0 o 1 indicando si se quiere imprimir las matrices o no.\n");
-        printf("Ejemplo : \n ./test 16 4 0\n");
+        printf("Ejemplo con N = 16, tamaño de bloque = 4 y sin imprimir: \n ./test 16 4 0\n");
         exit(1);
     }
 
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     A = (double * ) malloc(N * N * sizeof(double));
     B = (double * ) malloc(N * N * sizeof(double));
+    B_T = (double * ) malloc(N * N * sizeof(double));
     C = (double * ) malloc(N * N * sizeof(double));
     R = (double * ) malloc(N * N * sizeof(double));
     mul1 = (double * ) malloc(N * N * sizeof(double));
@@ -101,6 +93,7 @@ int main(int argc, char * argv[]) {
         for (j = 0; j < N; j++) {
             A[i * N + j] = random_entre_a_b(1, 64);
             B[i * N + j] = random_entre_a_b(1, 64);
+            B_t[j * N + i] = B[i * N + j];
             C[i * N + j] = random_entre_a_b(1, 64);
             R[i * N + j] = 0.0;
             mul1[i * N + j] = 0.0;
@@ -108,7 +101,7 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    // Imprimir las matrices
+    // Imprimir las matrices.
   	if (imprimir_matrices) {
       printf("Matriz A:\n");
       imprimir_matriz(A, N, 1);
@@ -154,11 +147,11 @@ int main(int argc, char * argv[]) {
     // Resolver [A * B] y guardarlo en una matriz auxiliar mul1.
     // Resolver [C * B^T] y guardarlo en una matriz auxiliar mul2.
     for (i = 0; i < N; i += block_size) {
-            for (j = 0; j < N; j += block_size) {
-                for (int k = 0; k < N; k += block_size) {
-                    // Multiplicación por bloques.
-                    blkmul( & A[i * N + k], & B[j * N + k], & C[i * N + j], &mul1[i * N + j], &mul2[i * N + j], N, block_size);
-                }
+        for (j = 0; j < N; j += block_size) {
+            for (k = 0; k < N; k += block_size) {
+                multiplicar_bloque( & A[i * N + k], & B[j * N + k], & mul1[i * N + j], N, block_size);
+                multiplicar_bloque( & C[i * N + k], & B_T[j * N + k], & mul2[i * N + j], N, block_size);
+            }
         }
     }
 
@@ -180,7 +173,6 @@ int main(int argc, char * argv[]) {
       printf("Impresion de matriz R resultado\n");
       imprimir_matriz(R, N, 1);
     }
-
 
     printf("Valor máximo de A: %f\n", maxA);
     printf("Valor máximo de B: %f\n", maxB);
