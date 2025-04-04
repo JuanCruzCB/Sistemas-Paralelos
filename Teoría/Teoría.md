@@ -668,6 +668,56 @@ int sched_get_priority_max(int policy);
 
 <h1 align="center">Clase 4 - 4 de abril, 2025</h1>
 
+## Diseño de algoritmos paralelos
+
+###
+
+- Multiples unidades de procesamiento.
+- Considerar concurrencia y especificar qué pasos se pueden hacer en simultaneo.
+- Aisngar tareas a procesos que se ejecutan en dif procesadores.
+- Administrar accesos a data compartida.
+- Sincronizar.
+- Distribuir datos de entrada salida e intermedios.
+
+## Etapa de descomposición en tareas
+
+###
+
+- PRoceso de dividir el computo en tareas las cuales algunas o todas se ejecutaran en paralelo.
+- Gran cantidad de tareas peqeuñas inicialmente.
+- Paralelismo de datos vs paralelismo funcional.
+- Si el problema lo permite, todas las tareas son independientes.
+- Para problemas complejos, un grafo de dependencia de tareas es util.
+- Grano fino vs Grano grueso. Cual es mejor depende de cuantos cores tiene la maquina.
+- Grado de concurrencia -> Maximo grado de concurrencia -> Grado de concurrencia promedio.
+- Camino crítico de grafo indica el grado de concurrencia. UN camino critico mas corto favorece a un mayor grado de concurrencia. Puede ahber mas de un camino critico.
+- Se busca un grado de concurrencia promedio mayor.
+- Aglomeración de tareas: combinar varias tareas en una.
+- Tipos de tecnicas de descomposicion: recursiva; basada en los datos; exploratoria; especulativa; híbrida. Nos interesan las dos primeras.
+
+## Etapa de mapeo de tareas a procesos
+
+###
+
+- Las tareas se pueden generar de forma estática o dinámica.
+- Estática -> la cantidaad se conoce pre-ejecucion
+- Dinámica -> No se sabe de antemano, se resuelve en ejecucion.
+- Las tareas pueden ser uniformes o no uniformes.
+
+## Métodos para reducir overhead de las interacciones
+
+###
+
+
+
+## Modelos de algoritmos paralelos
+
+###
+
+---
+
+<h1 align="center">Clase 5 - 11 de abril, 2025</h1>
+
 ## ?
 
 ---
