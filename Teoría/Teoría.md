@@ -670,49 +670,258 @@ int sched_get_priority_max(int policy);
 
 ## Diseño de algoritmos paralelos
 
-###
+### Idea
 
-- Multiples unidades de procesamiento.
-- Considerar concurrencia y especificar qué pasos se pueden hacer en simultaneo.
-- Aisngar tareas a procesos que se ejecutan en dif procesadores.
-- Administrar accesos a data compartida.
-- Sincronizar.
-- Distribuir datos de entrada salida e intermedios.
+- Un algoritmo paralelo se puede ver como una receta que **indica cómo resolver un problema usando varias unidades de procesamiento**.
+- Para desarrollar algoritmos de este tipo se suelen seguir los siguientes pasos:
+  - Identificar porciones de trabajo (tareas) que pueden resolverse en paralelo.
+  - Asignar tareas a procesos que se ejecutan en diferentes procesadores.
+  - Distribuir datos de entrada, de salida e intermedios asociados con el programa.
+  - Administrar accesos a datos compartidos.
+  - Sincronizar procesos en diferentes etapas del programa.
+- Los pasos **fundamentales** son:
+  - Descomposición en tareas.
+  - Mapeo de tareas a procesos.
 
 ## Etapa de descomposición en tareas
 
-###
+### Proceso
 
-- PRoceso de dividir el computo en tareas las cuales algunas o todas se ejecutaran en paralelo.
-- Gran cantidad de tareas peqeuñas inicialmente.
-- Paralelismo de datos vs paralelismo funcional.
-- Si el problema lo permite, todas las tareas son independientes.
-- Para problemas complejos, un grafo de dependencia de tareas es util.
-- Grano fino vs Grano grueso. Cual es mejor depende de cuantos cores tiene la maquina.
-- Grado de concurrencia -> Maximo grado de concurrencia -> Grado de concurrencia promedio.
-- Camino crítico de grafo indica el grado de concurrencia. UN camino critico mas corto favorece a un mayor grado de concurrencia. Puede ahber mas de un camino critico.
-- Se busca un grado de concurrencia promedio mayor.
-- Aglomeración de tareas: combinar varias tareas en una.
-- Tipos de tecnicas de descomposicion: recursiva; basada en los datos; exploratoria; especulativa; híbrida. Nos interesan las dos primeras.
+- Consiste en dividir el cómputo en partes pequeñas, **tareas**, de las cuales algunas o todas podrán ser ejecutadas en paralelo.
+- Inicialmente se quiere definir un gran número de tareas pequeñas (grano fino) ya que provee mayor flexibilidad.
+- Más adelante en el desarrollo, la partición original puede ser revisada y sus tareas aglomeradas para aumentar la granularidad.
+- La descomposición se puede realizar de varias formas.
+  - Tareas de igual código → paralelismo de datos o de dominio.
+  - Tareas de código diferente → paralelismo funcional.
+
+### Descomposición de datos
+
+- Consiste en dividir los datos asociados al problema en porciones pequeñas, usualmente del mismo tamaño, y luego asociar el cómputo relacionado a las mismas para generar las tareas.
+- Es decir, se llega a un número determinado de tareas donde cada una se ocupa de algunos datos y operaciones a realizar sobre éstos.
+- Una operación puede necesitar datos de diferentes tareas, en cuyo caso hay comunicación y sincronización.
+- Según la estructura de datos que se tenga, puede haber diferentes divisiones.
+
+### Descomposición funcional
+
+- Se enfoca en el cómputo a realizar más que en los datos.
+- Divide el cómputo en tareas disjuntas y luego se examinan los datos.
+- Los requerimientos de datos pueden ser disjuntos (caso ideal) o superponerse significativamente (peor caso, porque implica comunicación para evitar replicación de datos).
+- La descomposición de datos es la más antigua y, a su vez, la más usada.
+- De todas formas, la descomposición funcional tiene valor como una forma diferente de pensar los problemas:
+  - Enfocarse en el cómputo a realizar facilita la estructuración del programa y el descubrimiento de oportunidades de optimización (situación que no es tan obvia cuando uno se enfoca en los datos).
+
+### Grafo de Dependencias de Tareas (GDT)
+
+- Si el problema lo permite, todas las tareas serán independientes.Este es el caso ideal ya que todas podrían computarse a la vez.
+- En general esto no ocurre y existe algún tipo de dependencia entre las tareas.
+- Un Grafo de Dependencias de Tareas (GDT) puede ser útil para expresar las dependencias entre las tareas y su orden relativo.
+  - Es un grafo acíclico dirigido en el que los nodos representan las tareas y las aristas indican las dependencias entre las mismas.
+  - El grafo puede ser disconexo e inclusive no tener aristas (en este último caso no habría dependencias).
+
+### Granularidad
+
+- La granularidad de la descomposición en tareas indica el número y tamaño de las tareas:
+  - **Grano fino**: muchas tareas pero pequeñas.
+  - **Grano grueso**: pocas tareas pero grandes.
+
+### Métricas de concurrencia
+
+- El **grado de concurrencia** de la descomposición indica cuántas tareas se ejecutan en paralelo.
+- Dado que este número puede variar durante la ejecución, se suele preferir analizar el **máximo grado de concurrencia** alcanzable por una determina descomposición.
+- También tenemos el **grado de concurrencia promedio** que representa el número promedio de tareas que pueden ejecutarse en simultáneo **durante todo el programa**.
+  - Se relaciona directamente con la cantidad de procesadores activos y con el balance de carga del programa.
+  - Cuanto mayor sea, mejor.
+- Una característica del grafo de dependencias de tareas que determina el grado de concurrencia promedio para una determinada granularidad es el **camino crítico**.
+  - Se trata del camino dirigido más largo entre un nodo inicial (nodo que no recibe aristas) y un nodo final (nodo del que no salen aristas).
+  - La suma de los pesos de los nodos que integran el camino crítico se conoce como **longitud del camino crítico**. Si los pesos indican el tiempo requerido por una tarea, entonces representa el tiempo mínimo requerido para resolver el problema.
+  - Un camino crítico más corto favorece a un mayor grado de concurrencia.
+- `Grado de concurrencia promedio = Peso total / Longitud del camino crítico`
+
+### Aglomeración de tareas
+
+- Consiste en analizar si conviene combinar/aglomerar varias tareas en una para obtener una granularidad de grano más grueso.
+- En general, el número final de tareas como resultado de la aglomeración debería ser **igual al número de procesadores a usar**.
+- Hay 3 objetivos que guían las decisiones de aglomeración:
+  - **Incremento de la granularidad**: al combinar varias tareas relacionadas, se elimina la necesidad de comunicar datos entre ellas.
+  - **Preservación de la flexibilidad**: al combinar varias tareas se puede limitar la escalabilidad del algoritmo. Si un algoritmo es capaz de crear un número variable de tareas, entonces posee un mayor grado de portabilidad y escalabilidad.
+  - **Reducción de costos de desarrollo**: en ocasiones, el costo desde el punto de vista del proceso de ingenería de software, puede ser muy elevado para la ganancia asociada.
+
+### Técnicas de descomposición en tareas
+
+#### Recursiva
+
+- En general se ajusta muy bien a los problemas que se pueden resolver mediante la estrategia **divide and conquer**.
+- El problema inicial es dividido en un conjunto de subproblemas independientes. Luego, cada uno de estos subproblemas son recursivamente descompuestos en otros subproblemas independientes más pequeños hasta alcanzar una determinada granularidad.
+- En ocasiones, puede requerirse alguna fase de combinación de resultados parciales.
+- Ejemplo: Ordenación de arreglo por método Quicksort.
+- Es una técnica de propósito general.
+
+#### Basada en los datos
+
+- Se suele usar en problemas que operan sobre grandes estructuras de datos.
+- Posee dos pasos:
+  - Particionar los datos a procesar.
+  - Usar esta partición para inducir una descomposición del cómputo en tareas.
+- El particionamiento de los datos se puede realizar de diferentes maneras: se debe analizar las diferentes variantes y elegir la que lleve a una descomposición natural y de buen rendimiento.
+- Es una técnica de propósito general.
+- Posee dos subtipos: **datos de salida** y **datos de entrada**.
+
+##### Datos de salida
+
+- Resulta natural cuando cada elemento de la salida del programa, los resultados, se puede calcular en forma independiente como función de los datos de entrada.
+- Una partición de los datos de salida lleva inmediatamente a una descomposicíón en tareas, donde a cada tarea se le asocia el cómputo relacionado a la porción asignada.
+- En general, una determinada descomposición de datos lleva a una dada descomposición del cómputo en tareas, pero puede haber más de una opción.
+
+##### Datos de entrada
+
+- Particionar los datos de salida no siempre es posible. Por ejemplo:
+  - Cuando se computa el máximo, el mínimo o la suma de una lista de números: la salida es un **único número**.
+  - Cuando se ordena un vector de números, los elementos individuales de la salida no se pueden determinar de antemano.
+- En estos casos, resulta natural particionar los datos de entrada e inducir concurrencia a partir de ellos.
+- A cada tarea se le asigna una porción de los datos de entradas y será responsable de realizar todos los cómputos asociados a la misma. A veces se puede requerir de algun paso posterior de reducción de salidas parciales.
+- Ejemplos:
+  - Contar ocurrencias en un vector.
+  - Búsqueda de un elementos en un vector.
+  - Descomposición estática para realizar una ordenación.
+
+#### Exploratoria
+
+- Útil en problemas cuya solución involucra una búsqueda en un espacio de soluciones.
+- Para realizar la descomposición se particiona el espacio de búsqueda en porciones más pequeñas y se realiza una búsqueda concurrente en cada una de ellas hasta encontrar la solución objetivo.
+- Es una técnica de propósito específico.
+- Ejemplos:
+  - Problemas de optimización (buscar la mejor configuración para un determinado conjunto de parámetros).
+  - Juegos (puzzle-N, ajedrez, entre otros).
+
+#### Especulativa
+
+- Se usa cuando un programa podría tomar uno de varios caminos que implican un costo computacional alto, pero la decisión depende de la salida de algún cómputo anterior.
+- Pensar en un case con múltiples opciones que son evaluadas al mismo tiempo pero antes de tener el valor de la entrada. Cuando la entrada del case está disponible, se descartan las opciones incorrectas y se continúa la ejecución.
+- Ejemplo: simulación de eventos discretos.
+- Diferencia con la técnica exploratoria:
+  - En especulativa, la entrada de una bifurcación que lleva a múltiples nuevas tareas es desconocida.
+  - En cambio con exploratoria, la salida de las múltiples tareas que salen de una bifuración son desconocidas.
+
+#### Híbrida
+
+- Las técnicas anteriores se pueden combinar.
+- En ocasiones, un programa se estructura en múltiples etapas y cada etapa puede ser descompuesta de forma diferente.
+- Ejemplo: búsqueda del mínimo en un vector.
+  - Una descomposición recursiva pura podría generar una cantidad excesiva de tareas si n >> P.
+  - Una mejor opción consiste en realizar primero una **descomposición de datos** y luego una **recursiva**.
 
 ## Etapa de mapeo de tareas a procesos
 
-###
+### Idea
 
-- Las tareas se pueden generar de forma estática o dinámica.
-- Estática -> la cantidaad se conoce pre-ejecucion
-- Dinámica -> No se sabe de antemano, se resuelve en ejecucion.
-- Las tareas pueden ser uniformes o no uniformes.
+- Este paso consiste en asignar tareas a procesos del programa.
+- Para hacer un buen mapeo, se deben tener en cuenta:
+  - Forma de generación.
+  - Tamaño y conocimiento del mismo.
+  - Volúmen de datos asociado.
+- El mapeo debe llevarse a cabo buscando que el tiempo requerido para completar las tareas sea el mínimo. Para esto se consideran dos estrategias:
+  - Asignar tareas independientes en diferentes procesadores para lograr un mayor grado de concurrencia.
+  - Asignar tareas que se comunican frecuentemente en el mismo procesador reducir overhead y mejorar localidad.
+- Estas 2 estrategias claramente entran en conflicto entre sí y la clave está en encontrar el balance adecuado.
+- El problema de encontrar un mapeo óptimo es NP-completo: esto significa que no existe un algoritmo de complejidad polinomial que evalúe los diferentes compromisos entre las estrategias en el caso general y determine cuál es el mejor.
+- Sin embargo, existen heurísticas para determinadas clases de problema que suelen dar buen resultado.
+
+### Forma de generación
+
+- Las tareas que constituyen el programa se pueden generar de dos formas:
+- **Estática**:
+  - Las tareas que se generan se conocen pre-ejecución.
+  - Es fundamental conocer las características de las tareas (generación, tamaño, volumen de datos asociado).
+  - Para casos complejos se emplean heurísticas (mapeo óptimo es NP-completo).
+  - En general los algoritmos son más fáciles de diseñar y programar.
+  - Ejemplos: multiplicación de matrices, búsqueda del mínimo en una lista de números.
+- **Dinámica**:
+  - Las tareas se generan durante la ejecución, no se conoce de antemano cuál será la cantidad final.
+  - Si no se conoce de antemano el tamaño de las tareas, el mapeo dinámico suele dar mejor resultado.
+  - Si el volumen de datos asociado a cada tarea es grande pero el cómputo no es significativo, un mapeo dinámico podría incurrir en un alto overhead por la migración de datos.
+  - Ejemplo: quicksort recursivo.
+
+### Tamaño y conocimiento del mapeo
+
+- Las tareas del porograma pueden ser **uniformes** o **no uniformes**.
+  - Son uniformes si cada tarea requiere aproximadamente el mismo tiempo de cómputo. Ejemplo: multiplicación de matrices.
+  - Son no uniformes si cada tarea puede tardar tiempos muy distintos. Ejemplo: quicksort recursivo.
+- Conocer el tamaño de las tareas previo a la ejecución es otro factor que puede influir en el mapeo. Por ejemplo: en la multiplicación de matrices conocemos el tamaño de cada tarea previo a la ejecución.
+
+### Volúmen de datos asociado
+
+- Muchas veces tiene que ver con el nivel de granularidad elegido.
+- A su vez, la granularidad impacta directamente en la relación cómputo-comunicación.
+  - Usualmente, con bajos niveles de comunicación se tiende a afinar la granularidad y a asignar un menor volumen de datos por proceso.
+  - Sin embargo, cuando hay mucho intercambio de datos, se suele optar por aumentar la granularidad o emplear memoria compartida (si la arquitectura lo permite).
 
 ## Métodos para reducir overhead de las interacciones
 
-###
+### Motivación
 
+Reducir el overhead asociado a las interacciones entre procesos es un factor clave para mejorar la eficiencia de los programas paralelos.
 
+### Métodos
+
+1. **Minimizar volumen de datos intercambiados**: A mayor volumen de datos intercambiados, mayor tiempo de comunicación.
+2. **Minimizar frecuencia de las interacciones**: Cada interacción tiene un costo inicial de preparación. Siempre que sea posible, conviene combinar varias comunicaciones en una sola.
+3. **Minimizar competencia entre recursos y zonas críticas (hotspots)**: Evitar posibles cuellos de botella mediante el uso de técnica descentralizada. Replicar datos si es necesario.
+4. **Solapar cómputo con comunicaciones**: Mediante el uso de operaciones no bloqueantes en pasaje de mensajes y técnicas de multi-hilado y prebúsqueda en memoria compartida.
+5. **Replicar datos o cómputo**: si permite reducir las interacciones (mensajes o sincronización).
+6. **Usar operaciones de comunicación colectiva**.
+7. **Solapar comunicaciones con otras comunicaciones**: siempre y cuando el hardware de soporte lo permita, solapar diferentes comunicaciones puede reducir el overhead.
 
 ## Modelos de algoritmos paralelos
 
-###
+### Concepto
+
+- Un modelo de algoritmo representa una estructura usual de código que combina técnicas de descomposición de tareas y mapeo junto a la aplicación de métodos para minimizar overhead.
+- Existen varios modelos:
+  - Master-Slave.
+  - Pipeline.
+  - Single Program Multiple Data.
+  - Divide and Conquer.
+
+### Master-Worker
+
+- El proceso maestro es el que genera trabajo y se lo asigna a los workers.
+- Si el maestro puede estimar de antemano el tamaño de las tareas, un mapeo estático es mejor. Ejemplo: multiplicación de matrices.
+- Caso contrario, mapeo dinámico es mejor: tareas pequeñas son asignadas a los workers (posiblemente) en múltiples instancias. Ejemplo: ordenación de un vector.
+- Si las tareas son muy pequeñas o los workers muy rápidos, el master se puede volver un cuello de botella: la granularidad de las tareas debe ser elegida de forma tal que el tiempo de procesar la tarea sea mucho mayor que su comunicación o sincronización asociada.
+- Se puede generalizar a varios niveles.
+- Se puede usar tanto en memoria compartida como pasaje de mensajes.
+
+### Pipeline
+
+- El cómputo consiste en una secuencia de procesos.
+- Los datos se suelen particionar y pasar entre los procesos, donde cada uno realiza una tarea determinada sobre ellos.
+- Se suele organizar en forma de arreglo lineal o multi-dimensional. A veces, usando árboles o grafos.
+- Se puede ver como una cadena de productores y consumidores.
+  - Cada proceso consume los datos que genera el anterior en el pipe.
+  - Al mismo tiempo, produce los datos que serán consumidos por el siguiente proceso
+- El balance de carga depende de la **granularidad** de las tareas:
+  - A mayor granularidad, más tiempo tardará el pipeline en llenarse (paralelismo ideal).
+  - A menor granularidad, mayor interacción entre los procesos del pipeline.
+
+### Single Program Multiple Data
+
+- Cada proceso realiza el mismo cómputo sobre una **porción de datos diferentes**.
+  - Esto se logra vía condicionales.
+- En general, la carga de trabajo es proporcional a la cantidad de datos asignados a un proceso. Esto trae dificultades en problemas irregulares o donde la arquitectura de soporte es hetereogénea.
+- El cómputo puede tener varias fases, las cuales son intercaladas con comunicación/sincronización.
+- Se puede usar tanto en memoria compartida como pasaje de mensajes:
+  - En MC suele ser más simple.
+  - En pasaje de mensajes:
+    - Cuando el espacio de direcciones está particionado se suele tener un mayor control sobre la ubicación de los datos y por ende se logra una mayor localidad de datos.
+    - El overhead de las comunicaciones puede ser aliviado mediante el uso de operaciones no bloqueantes, siempre y cuando las dependencias lo permitan.
+
+### Divide and Conquer
+
+- Consiste en 2 fases, dividir y consquistar:
+  - **Dividir**: se particiona sucesivamente el problema en sub-problemas más chicos hasta obtener la granularidad deseada.
+  - **Conquistar**: se resuelven los subproblemas en forma independiente.
+- A veces requiere una tercer fase de combinación de resultados parciales para obtener el resultado final.
+- Ejemplo: Merge-sort.
 
 ---
 
