@@ -925,8 +925,195 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 ---
 
-<h1 align="center">Clase 5 - 11 de abril, 2025</h1>
+<h1 align="center">Clase 5 - 8 de abril, 2025</h1>
 
-## ?
+## Análisis de rendimiento en sistemas paralelos
+
+### Definición de rendimiento
+
+- Dependiendo del contexto, qué cosa rinde mejor que otra depende de qué métricas son las que se valoren.
+- Las dos métricas más comunes son:
+  - **Tiempo para completar la tarea**: tiempo de ejecución, latencia, tiempo de respuesta, u otras derivadas.
+  - **Tareas completadas por unidad de tiempo**: throughput, ancho de banda.
+- Los sistemas paralelos suelen ser sistemas dedicados, que priorizan las **métricas basadas en tiempo**.
+
+### Tiempos de ejecución
+
+- Un algoritmo secuencial se suele evaluar por su tiempo de ejecución. En general, es posible encontrar alguna ley asintótica del tiempo de ejecución **en función del tamaño de datos de entrada**.
+- El tiempo de ejecución de un programa paralelo no sólo depende del tamaño de los datos de entrada sino también de:
+  - El número de procesadores.
+  - Los parámetros de comunicación de la arquitectura de soporte.
+- Por ende, el análisis de TE de un programa paralelo se debe realizar a nivel de sistema paralelo: combinación de algoritmo paralelo y contexto de hardware y software.
+- El tiempo de ejecución secuencial (Ts) es el tiempo que transcurre desde el **inicio hasta el fin de la ejecución sobre una máquina usando una única unidad de procesamiento**.
+- El tiempo de ejecución paralela (Tp) resume la diferencia de tiempo entre que la primera tarea que comienza hasta que la última tarea haya completado su trabajo.
+
+#### Fuentes de overhead
+
+- Usando el doble de recursos, uno creería que el programa paralelo se ejecutará en la mitad del tiempo. Sin embargo, en la práctica, esto no suele pasar.
+- Esto se debe a que existen factores que generan **overhead** en los programas paralelos e impiden una mejora proporcional al aumento de la arquitectura. Estos factores son:
+  - Ocio.
+  - Interacción entre procesos.
+  - Cómputo adicional.
+
+### Speedup
+
+- Es una métrica que refleja el beneficio de usar procesamiento paralelo para resolver un problema particular comparado a realizarlo en forma secuencial.
+- $S_p(N) = \frac {T_s(N)} {T_p(N)}$
+- Indica cuántas veces más rápido se pudo resolver el problema usando el algoritmo paralelo vs el secuencial, usando p unidades de procesamiento y tamaño de problema N.
+- El algoritmo secuencial a usar en la comparación debe ser **el mejor**, el más rápido, para el problema dado.
+
+#### Límites
+
+- Si $S_p(N) < 1$, entonces el algoritmo paralelo es **peor** que el secuencial. Caso contrario, el paralelo es **mejor**.
+- Si $S_p(N) = p$, entonces el speedup es **óptimo, lineal, o perfecto**.
+- Si $S_p(N) > p$, entonces el speedup es **superlineal**.
+  - Esto puede ocurrir por ejemplo si el algoritmo paralelo realiza menos trabajo que el algoritmo secuencial. Ejemplo: Búsqueda DFS.
+  - También puede ocurrir si combinamos características de hardware y distribución de los datos del algoritmo paralelo que ponen en desventaja al algoritmo secuencial.
+
+#### Potencia Cómputo Total
+
+- Las arquitecturas de hardware no siempre son homogeneas, es decir que todas las unidades de procesamiento son igual de rápidas.
+- También tenemos arquitecturas de hardware heterogeneas, y en este caso el Speedup se debe calcular considerando la Potencia Cómputo Total (pct) en vez de usar el número de procesadores (p).
+- $pct = \sum_{i=0}^{p-1} pcr_i$
+- $pcr_i = \frac{p_i}{p_m}$
+- Donde:
+  - **$pct$**: Potencia de Cómputo Total
+  - **$pcr$**: Potencia de Cómputo Relativa
+  - **$p_i$**: Potencia del procesador i
+  - **$p_m$**: Potencia del mejor procesador
+
+### Eficiencia
+
+- Médida de la fracción de tiempo en la cual las unidades de procesamiento son usadas de forma útil.
+- $E_p(N) = \frac{S_p(N)}{S_{opt}}$
+- En arquitecturas homogeneas, el speedup óptimo es igual a p, mientras que en heterogeneas es igual a la potencia de cómputo total.
+- Si $S_p(N) = p$, entonces $E_p(N) = 1$.
+- Si $S_p(N) \leq p$, entonces $E_p(N) \leq 1$.
+- $E_p(N)$ siempre es mayor a 0. Por ende:
+- **$0 < E_p(N) \leq 1$**.
+
+### Overhead total
+
+- Diferencia entre la suma del tiempo requerido por **todas** las unidades de procesamiento y el del mejor algoritmo secuencial para resolver el mismo problema empleando una única de unidad de procesamiento.
+- $𝑂𝑇_𝑝(N) = 𝑝 \times 𝑇_p(N) − 𝑇_s(N)$
+
+### Overhead de las comunicaciones
+
+- Relación entre el tiempo requerido por las comunicaciones de nuestra solución y el tiempo total que esta requiera.
+- $OC_p(N) = \frac{Tcomm_p(N)}{T_p(N)} \times 100$
+
+### Ley de Amdahl
+
+- Esta ley permite estimar el speedup alcanzable en programas paralelos que poseen bloques de ejecución secuenciales, es decir que no se pueden paralelizar.
+- Dada una fracción $f$ donde $0 \leq f \leq 1$ de un programa paralelo que debe ser ejecutada secuencialmente, entonces el tiempo de ejecución paralela se calcula como:
+- $T_p(N) = f \times T_s(N) + \frac{(1 - f) \times T_s(N)}{p}$
+- Por ende el speedup se reescribe:
+- $S^A_p(N) = \frac{T_s(N)}{f \times T_s(N) + \frac{(1 - f) \times T_s(N)}{p}} = \frac{1}{f + \frac{1 - f}{p}}$
+- Incluso con un número ilimitado de procesadores, el speedup está limitado a $\frac{1}{f}.$
+- Por ejemplo, con 5% de ejecución secuencial (f = 0.05) en un programa paralelo, el **máximo Speedup alcanzable será 20**, sin importar el número de unidades de procesamiento que podamos emplear.
+
+### Escalabilidad
+
+- Este concepto hace referencia a la capacidad del sistema de mantener un nivel de eficiencia fijo a medida que aumenta tanto el número de unidades de procesamiento como el tamaño de problema (N).
+  - Si estas dos condiciones se cumplen, el sistema se dice escalable.
+- También se puede ver a la escalabilidad como una medida de la capacidad de incrementar el Speedup en forma proporcional al número de unidades de procesamiento empleadas.
+- La escalabilidad se puede clasificar en fuerte o débil, según qué ocurre al incrementar el número de unidades de procesamiento:
+  - **Fuerte**: Al hacer eso, **no resulta necesario** aumentar el tamaño de problema para mantener la eficiencia en un valor fijo.
+  - **Débil**: Al hacer eso, **resulta necesario** también aumentar el tamaño de problema para mantener la eficiencia en un valor fijo.
+
+### Ley de Gustafson
+
+- El incremento en el Speedup por un tamaño mayor de problema no es percibido por la Ley de Amdahl.
+- En los 80, Gustafson observó que:
+  - Un multiprocesador más grande usualmente permite resolver un problema de mayor tamaño en un tiempo de ejecución determinado (escalabilidad) → el tamaño de problema seleccionado depende frecuentemente del número de unidades de procesamiento disponibles.
+  - Al incrementar el tamaño del problema y el número de unidades de procesamiento para mantener el tiempo de ejecución constante, la fracción secuencial de los programas se mantiene fija o no crece en forma proporcional al tamaño de la entrada.
+- Por lo tanto, asumir que el tamaño de problema es fijo resulta tan válido
+  como que el tiempo de ejecución paralela lo es.
+- Basándose en sus observaciones, Gustafson re-escribió la ecuación para estimar el máximo speedup alcanzable (conocido como Speedup escalado).
+- La ley dice lo siguiente:
+  - Dada una fracción $f', 0 \leq f' \leq 1$, de un programa paralelo que debe ser ejecutado secuencialmente pero que no crece en forma proporcional a N, el speedup escalado se calcula como:
+    - $S^S_p(N) = \frac{T_s(N)}{T_p(N)} = \frac{f' \times T_p(N) + (1 - f') \times T_p(N) \times p}{T_p(N)} = p + (1 - p) \times f'$
+  - Esta versión hace 2 suposiciones:
+    - $T_p(N)$ se mantiene constante.
+    - $f' \times T_p(N)$ no escala en forma proporcional al aumento de p y N.
+  - Por ejemplo, con 5% de ejecución secuencial (f' = 0.05) y 20 procesadores, el speedup alcanzable sería $20 + (1 − 20) × 0.05 = 19.05$ en lugar de $\frac{1}{0.05 + \frac{1 - 0.05}{20}} = 10.26$, el cual se obtendría con Amdahl.
+
+### Comparación Amdahl y Gustafson
+
+| Característica     | Escalabilidad fuerte (Amdahl)                                                               | Escalabilidad débil (Gustafson)                                                                                                                                                                |
+| ------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tamaño de problema | Se mantiene fijo a medida que crece la cantidad de procesadores.                            | El tamaño del problema por procesador se mantiene fijo a medida que se incrementa la cantidad de procesadores → El tamaño total del problema es proporcional al número de procesadores usados. |
+| Objetivo           | Resolver el mismo problema de forma más rápida                                              | Resolver un problema más grande en la misma cantidad de tiempo                                                                                                                                 |
+| Escalado perfecto  | Se logra cuando el problema se resuelve en 1/P unidades de tiempo, comparado al secuencial. | Se logra cuando se resuelve un problema P veces más grande en la misma cantidad de tiempo que el secuencial.                                                                                   |
+
+### Desbalance de carga
+
+- En arquitecturas heterogéneas se puede medir el desbalance de carga:
+- $D = \frac{máximo - mínimo}{promedio}$, donde:
+  - máximo hace referencia al tiempo que tardó la tarea que **más** tiempo le llevó terminar.
+  - mínimo hace referencia al tiempo que tardó la tarea que **menos** tiempo le llevó terminar.
+  - promedio hace referencia al tiempo promedio que tardaron entre todas las tareas.
+- Si $D = 0$, entonces todas las unidades de procesamiento tomaron el mismo tiempo, lo cual es poco común.
+- Se busca que D esté lo más cerca posible de 0.
+
+### Cómo optimizar algoritmos
+
+#### Principio de Pareto
+
+- Este principio dice: `90% del tiempo de ejecución se dedica a ejecutar 10% del código.`
+- En otras palabras, nos dice que deberíamos enfocarnos en optimizar las partes del código que más tiempo están tardando, ya que mejorar estas partes incluso un poco es mucho más productivo que mejorar muchísimo partes que no toman mucho tiempo.
+- En programas pequeños, uno puede identificar fácilmente donde está la sección de código que más demanda computacional tiene (a esto se
+  lo conoce como **hotspot**):
+  - Observando y analizando el código (habitualmente los bucles).
+  - Instrumentando el código “a mano” (tomar tiempos de diferentes secciones).
+- En programas de complejidad mediana o alta, se puede realizar un proceso llamado **profiling** (o perfilado).
+  - Mediante herramientas de software, se analiza y mide el rendimiento de una aplicación o programa → el objetivo principal es identificar los puntos críticos de la aplicación que consumen la mayor cantidad de tiempo de ejecución o recursos del sistema.
+  - Hay muchos profilers diferentes, según el lenguaje, el aspecto a mejorar, la modalidad de uso, entre otros. Ejemplos:
+    - C: gprof, Valgrind, VTune.
+    - Python: cProfile, profile.
+    - Julia: profile.
+
+### Cómo medir tiempos de ejecución adecuadamente
+
+- Usualmente interesa analizar la mejora lograda en determinada parte del programa.
+- En la práctica, el tiempo de ejecución no siempre se considera desde el que programa empieza hasta que termina.
+- Podemos eliminar del timing:
+  - Reserva de memoria.
+  - Lectura de datos de entrada.
+  - Impresión de datos de salida.
+  - Liberación de memoria.
+- Aunque la solución paralela involucre p tareas, $T_p(n)$ debe ser un único valor que contemple el tiempo que transcurre desde que la primera tarea comenzó a ejecutar hasta que la última haya completado su trabajo: Tener en cuenta que este tiempo puede hacer referencia a una determinada parte del programa.
+- En ocasiones, **no todas las tareas comienzan y terminan al mismo tiempo**: Para asegurarnos una medición correcta, podemos usar barreras.
+- Otro factor a tener en cuenta es la variabilidad en las mediciones:
+  - Se recomienda repetir las pruebas un determinado número de veces y calcular el promedio o la mediana.
+  - En ocasiones, también puede ser de interés reportar el tiempo mínimo y el máximo.
+
+---
+
+<h1 align="center">Clase 6 - 11 de abril, 2025</h1>
+
+## Programación en memoria compartida - Open Multiprocessing (OpenMP)
+
+###
+
+###
+
+###
+
+###
+
+###
+
+###
+
+###
+
+###
+
+###
+
+###
+
+## Multithreading en otros lenguajes
 
 ---
