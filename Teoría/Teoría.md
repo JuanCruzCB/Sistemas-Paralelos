@@ -1094,26 +1094,88 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 ## Programación en memoria compartida - Open Multiprocessing (OpenMP)
 
-###
+### OpenMP - Definición
 
-###
+- Estándar para programación paralela **basado en directivas** que está disponible en C, C++, Fortran.
+- Posee 3 componentes principales:
+  - Directivas.
+    - Proveen soporte para concurrencia, sincronización y manejo de datos, obviando el uso explícito de locks, variables condición alcance de los datos e inicialización de threads.
+    - Son traducidas a código Pthreads.
+  - Funciones de librerías.
+  - Variables de entorno.
+- Fue diseñado con el objetivo de diseñar un estándar para programas de memoria compartida que pudieran ser desarrollados con mayor nivel de abstracción.
+- Sigue una filosofía de desarrollo incremental.
 
-###
+### Sintáxis básica
 
-###
+```c
+#pragma omp nombre_directiva [lista de cláusulas]
+```
 
-###
+### Modelo Fork-Join
 
-###
+-
 
-###
+### Constructor parallel
 
-###
+(def, private, firstprivate, shared, default, num_threads, cláusula if)
 
-###
+### Constructor for
 
-###
+### Constructor sections
+
+- Si hay más hilos que secciones, los hilos extra no hacen nada (buscar en internet para + detalle).
+
+### Combinación de directivas
+
+### Paralelismo anidado
+
+### Constructor single
+
+### Constructor master
+
+### Constructor barrier
+
+### Constructor critical
+
+### Constructor ordered
+
+### Directiva flush
+
+### Funciones generales
+
+#### Básicas
+
+#### Creación de hilos
+
+#### Planificación de hilos
+
+#### Uso explícito de locks
+
+#### Exclusión mutua recursiva
+
+### Variables de entorno
+
+### Tasking
+
+####
+
+####
+
+####
+
+####
+
+####
+
+####
 
 ## Multithreading en otros lenguajes
+
+---
+
+<h1 align="center">Clase 7 - 25 de abril, 2025</h1>
+
+## Programación en pasaje de mensajes. MPI
 
 ---
