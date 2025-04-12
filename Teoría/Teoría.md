@@ -1098,13 +1098,14 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 - Estándar para programación paralela **basado en directivas** que está disponible en C, C++, Fortran.
 - Posee 3 componentes principales:
-  - Directivas.
+  - Directivas:
+    - Son constructores de alto nivel que liberan al programador del manejo explícito de hilos.
     - Proveen soporte para concurrencia, sincronización y manejo de datos, obviando el uso explícito de locks, variables condición alcance de los datos e inicialización de threads.
     - Son traducidas a código Pthreads.
   - Funciones de librerías.
   - Variables de entorno.
 - Fue diseñado con el objetivo de diseñar un estándar para programas de memoria compartida que pudieran ser desarrollados con mayor nivel de abstracción.
-- Sigue una filosofía de desarrollo incremental.
+- Sigue una filosofía de desarrollo incremental: nos permite convertir nuestra aplicación 100% secuencial en una paralela de forma relativamente simple.
 
 ### Sintáxis básica
 
@@ -1114,63 +1115,429 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 ### Modelo Fork-Join
 
--
+- El programa empieza con un único hilo, el hilo **master**.
+- Al encontrar un constructor paralelo (o directiva **parallel**), el hilo master crea un grupo de hilos → **Fork**.
+- El bloque encerrado por el constructor de la región paralela es ejecutado en paralelo por todos los hilos.
+- Cuando el conjunto de hilos termina el bloque paralelo, se sincronizan y terminan, continuando solamente el hilo master → **Join**.
 
 ### Constructor parallel
 
-(def, private, firstprivate, shared, default, num_threads, cláusula if)
+#### Definición
+
+- Sintaxis:
+
+```c
+#pragma omp parallel [lista de cláusulas] {
+    ...
+}
+```
+
+- Constructor principal.
+- Permite especificar un bloque de código que será ejecutado en paralelo, dentro de la **región paralela**.
+- Asegura la creación de un equipo de hilos, pero la distribución del trabajo dentro de la región paralela es responsabilidad del programador.
+- Dentro de la región paralela, cada hilo mantiene su propio ID único (el ID 0 siempre corresponde al hilo master).
+- Al final de la región paralela, hay una **barrera implícita**: sólo el hilo master continúa con la ejecución.
+
+#### Private y firstprivate
+
+- Sintaxis:
+
+```c
+#pragma omp parallel private(lista_de_variables) {
+    ...
+}
+```
+
+- Crea una copia local **no inicializada** a cada hilo de cada variable especificada en la lista, respetando su tipo y tamaño.
+- Esta copia local sólo puede ser accedida y modificada por el hilo que la posee.
+- Cambios en esa copia no afectan al valor fuera del bloque paralelo.
+- Posee una variante **firstprivate** que es igual, solo que sí hereda el valor original de la variable antes del bloque paralelo, es decir que sí está inicializada.
+
+#### Shared y default
+
+- Sintaxis:
+
+```c
+#pragma omp parallel shared(lista_de_variables) {
+    ...
+}
+
+#pragma omp parallel default(shared | private | none) {
+    ...
+}
+```
+
+- Las variables que son compartidas entre todos los hilos se especifican con la cláusula **shared**.
+- Por defecto, todas las variables son compartida. Para alterar este comportamiento, se puede usar la cláusula **default**.
+
+#### Num_threads
+
+- Sintaxis:
+
+```c
+#pragma omp parallel num_threads(T) {
+    ...
+}
+```
+
+- Crea T hilos.
+- En caso de ausencia, el número de hilos a crear lo determina la variable de entorno **OMP_NUM_THREADS**.
+
+#### Cláusula if
+
+- Sintaxis:
+
+```c
+#pragma omp parallel if (cond) {
+    ...
+}
+```
+
+- Solo ejecuta la región en paralelo si se cumple la condición.
+- Si no, la ejecuta de forma secuencial, es decir que solo el hilo main ejecutará esa región y nadie más.
 
 ### Constructor for
 
+- Sintaxis:
+
+```c
+#pragma omp for [lista de cláusulas]
+for ( init_exp; check_exp; mod_exp)
+```
+
+- Divide las iteraciones de un bucle entre los hilos (**paralelismo de datos**).
+- Posee varias restricciones:
+  - Las iteraciones deben ser **independientes** entre sí.
+  - El n° de iteraciones debe ser conocido de antemano.
+  - La variable índice se vuelve privada por defecto y los hilos dentro del bucle no la pueden modificar.
+  - No se puede usar `break` dentro de las iteraciones.
+- El bucle paralelo finaliza con una sincronización implícita entre todos los hilos que lo integran.
+
+#### Acceso
+
+- **Private**: cada hilo tiene su propia copia de la variable.
+- **Firstprivate**: como private, pero inicializada con el valor original.
+- **Lastprivate**: funciona como private, sólo que la variable original queda con el valor de la última iteración del bucle
+
+#### Reduction
+
+- Sintaxis:
+
+```c
+#pragma omp for reduction(operador:variable)
+```
+
+- Aplica una reducción (suma, producto, máximo, etc.) entre todos los hilos.
+- Cada hilo tiene una copia privada de variable, y al final se combinan todas con el operador op.
+- Evita las condiciones de carrera comunes cuando se quiere acumular resultados.
+
+#### Nowait
+
+- Sintaxis:
+
+```c
+#pragma omp for nowait
+```
+
+- Evita la barrera implícita al final del bucle for.
+- Por defecto, todos los hilos esperan a que todos terminen el bucle, pero si se usa nowait, siguen de largo.
+
+#### Schedule
+
+- Sintaxis:
+
+```c
+#pragma omp for schedule(type, chunk_size)
+```
+
+- Controla cómo se **reparten** las iteraciones del bucle entre los hilos.
+- `type` puede ser de varios tipos:
+  - **static**: Divide las iteraciones en bloques fijos (por defecto), asignados de entrada.
+  - **dynamic**: Cada hilo pide más trabajo cuando termina el anterior.
+  - **guided**: Similar a dynamic pero con bloques que se van achicando.
+  - **auto**: El compilador decide.
+  - **runtime**: Se define por la variable de entorno OMP_SCHEDULE.
+- `chunk_size` es opcional y ajusta cuántas iteraciones recibe cada hilo por bloque.
+
+![Representación visual de los tipos de schedule](https://i.imgur.com/OfZD8hc.png)
+
 ### Constructor sections
 
+- Sintaxis:
+
+```c
+#pragma omp sections [lista de cláusulas] {
+    #pragma omp section { // bloque estructurado 1
+        ...
+    }
+    #pragma omp section { // bloque estructurado 2
+        ...
+    }
+}
+```
+
+- Útil para la distribución de trabajo no-iterativo. Por ejemplo, paralelismo funcional.
+- Cada bloque de código indicado por la directiva section es independiente de los demás y es ejecutado **una sóla vez por un único hilo**, pudiendo hacerlo en paralelo con el resto de los hilos.
+- Existe una barrera implícita al final de sections.
+- Cláusulas disponibles:
+  - shared, private, firstprivate, lastprivate.
+  - reduction.
+  - nowait.
 - Si hay más hilos que secciones, los hilos extra no hacen nada (buscar en internet para + detalle).
 
 ### Combinación de directivas
 
-### Paralelismo anidado
+- Las directivas for y sections se pueden combinar con la directiva parallel.
+
+```c
+#pragma omp parallel default (private) shared (n) {
+    #pragma omp for
+    for (i = 0; i < n; i++) {
+        ...
+    }
+}
+
+// Es equivalente a:
+
+#pragma omp parallel for default (private) shared (n)
+for (i = 0; i < n; i++) {
+    ...
+}
+```
+
+```c
+#pragma omp parallel {
+    #pragma omp sections {
+        #pragma omp section {
+            tareaA();
+        }
+        #pragma omp section {
+            tareaB();
+        }
+        #pragma omp section {
+            tareaC();
+        }
+    }
+}
+
+// Es equivalente a:
+
+#pragma omp parallel sections {
+    #pragma omp section {
+        tareaA();
+    }
+    #pragma omp section {
+        tareaB();
+    }
+    #pragma omp section {
+        tareaC();
+    }
+}
+```
 
 ### Constructor single
 
+- Sintaxis:
+
+```c
+#pragma omp single [lista de cláusulas] {
+    ...
+}
+```
+
+- Permite que un bloque de código sea ejecutado por **un único hilo** dentro de una región paralela.
+- El bloque es ejecutado solo por el primer hilo que llega a ese punto de ejecución, el resto de los hilos espera al final del bloque (hay una barrera implícita).
+- Permite las cláusulas:
+  - private.
+  - firstprivate.
+  - nowait.
+
 ### Constructor master
+
+- Sintaxis:
+
+```c
+#pragma omp master {
+    ...
+}
+```
+
+- Igual que single pero asegura que el único hilo que entra el bloque de código es el main.
+- A diferencia de single, no hay barrera implícita al final del bloque.
 
 ### Constructor barrier
 
+- Sintaxis:
+
+```c
+#pragma omp barrier
+```
+
+- Implementa un punto de sincronización global entre todos los hilos de un equipo: una barrera.
+- Puede causar deadlock.
+- Incide en el rendimiento.
+
 ### Constructor critical
+
+- Sintaxis:
+
+```c
+#pragma omp critical [nombre] {
+    ...
+}
+```
+
+- Permite implementar secciones críticas en forma sencilla.
+- Garantiza que, en cualquier punto de ejecución del programa, a lo sumo un hilo estará dentro de la sección crítica nombre.
+- Si un hilo alcanza un bloque critical y ya hay otro en la misma, el hilo **espera** a que la sección crítica se libere.
+- El nombre es opcional pero se recomienda fuertemente que cada sección crítica tenga su propio nombre único para evitar problemas.
 
 ### Constructor ordered
 
+- Sintaxis:
+
+```c
+#pragma omp ordered {
+    ...
+}
+```
+
+- Útil para casos en que resulta necesario ejecutar cierto segmento de código en el mismo orden en que lo haría la versión secuencial.
+- Se usa en el ámbito de una directiva for o parallel for.
+
 ### Directiva flush
+
+- Sintaxis:
+
+```c
+#pragma omp flush [(lista de variables)]
+```
+
+- Representa un punto de sincronización de la memoria.
+- Todas las escrituras pendientes en memoria principal son asentadas.
+- Todas las lecturas pendientes son realizadas desde memoria principal.
+- No suele ser muy usada ya que las siguientes directivas incluyen un flush implícito:
+  - Barrier.
+  - Entrada y salida de:
+    - critical.
+    - ordered.
+    - parallel.
+    - parallel for.
+    - parallel sections.
+  - Salida de:
+    - For.
+    - Sections.
+    - Single.
+- Excepciones:
+  - La cláusula nowait excluye a flush.
+  - Tampoco está presente a la entrada de:
+    - For.
+    - Sections
+    - Single.
+  - Ni a la entrada o salida de master.
 
 ### Funciones generales
 
 #### Básicas
 
+- `void omp_set_num_threads(int num_threads)`: Setea el valor de la variable de entorno OMP_NUM_THREADS, determinando el número de hilos que serán generando en las siguientes regiones paralelas que no especifiquen la clausula num_threads.
+- `int omp_get_num_threads()`: Retorna el número de hilos de la región paralela actual.
+- `int omp_get_max_threads()`: Retorna la cantidad máxima de hilos que podrían generarse en una región paralela.
+- `int omp_get_thread_num()`: Retorna el ID del hilo que la invocó dentro de la región paralela actual.
+- `int omp_get_num_procs()`: Retorna el número de procesadores disponibles en el sistema.
+- `int omp_in_parallel()`: Retorna True si el hilo que la invocó está dentro una región paralela, si no False.
+- ``:
+
 #### Creación de hilos
+
+- `void omp_set_dynamic(int dynamic_threads)`: Habilita o inhabilita el ajuste dinámico del número de hilos a generar en las próximas regiones paralelas.
+- `int omp_get_dynamic()`: Retorna True si el ajuste dinámico del número de hilos está habilitado, si no False.
+- `void omp_set_nested(int nested)`: Habilita o inhabilita el paralelismo anidado.
+- `int omp_get_nested()`: Retorna True si el paralelismo anidado está habilitado, si no False.
 
 #### Planificación de hilos
 
+- `void omp_set_schedule(omp_sched_t kind, int chunk)`: Permite configurar dinámicamente la planificación a usar cuando se especifica runtime en la clausula schedule.
+- `void omp_get_schedule(omp_sched_t * kind, int * chunk)`: Retorna la planificación que se usará cuando se especifica runtime en la clausula schedule.
+
 #### Uso explícito de locks
+
+- El tipo de dato para los locks es omp_lock_t y las funciones disponibles son:
+- `void omp_init_lock(omp_lock_t *lock)`
+- `void omp_destroy_lock(omp_lock_t *lock)`
+- `void omp_set_lock(omp_lock_t *lock)`
+- `void omp_unset_lock(omp_lock_t *lock)`
+- `int omp_test_lock(omp_lock_t *lock)`
+- Funcionan de igual manera que los locks de Pthreads.
 
 #### Exclusión mutua recursiva
 
+- El tipo de dato para los locks de esta clase es omp_nest_lock_t y las funciones disponibles son:
+- `void omp_init_nest_lock(omp_nest_lock_t *lock)`
+- `void omp_destroy_nest_lock(omp_nest_lock_t *lock)`
+- `void omp_set_nest_lock(omp_nest_lock_t *lock)`
+- `void omp_unset_nest_lock(omp_nest_lock_t *lock)`
+- `int omp_test_nest_lock(omp_nest_lock_t *lock)`
+- Funcionan de igual manera que los locks recursivos de Pthreads.
+
 ### Variables de entorno
+
+- OpenMP cuenta con un conjunto de variables de entorno para ayudar a controlar la ejecución del programa paralelo.
+- `OMP_NUM_THREADS`: Especifica la cantidad de hilos por defecto que se crearán.
+- `OMP_DYNAMIC`: Determina si el número de hilos puede ser modificado en forma dinámica.
+- `OMP_NESTED`: Especifica si se permite el paralelismo anidado.
+- `OMP_SCHEDULE`: Planificación para cuando la cláusula schedule es runtime.
 
 ### Tasking
 
-####
+#### Concepto
 
-####
+- Una tarea es una unidad de trabajo (porción de código) cuya ejecución puede ser diferida en el tiempo. Se compone de:
+  - Código a ejecutar.
+  - Entorno de datos.
+  - Variables de entorno internas.
+- Está pensado para paralelizar problemas **irregulares** como:
+  - Bucles while.
+  - Bucles for que no tienen una cantidad conocida de iteraciones.
+  - Algoritmos recursivos.
 
-####
+#### Constructor task
 
-####
+- Sintaxis:
 
-####
+```c
+#pragma omp task [lista de cláusulas] {
+    ...
+}
+```
 
-####
+- El programador identifica las tareas encerrando los bloques de código correspondientes bajo la directiva task: se asume que todas las tareas son independientes entre sí.
+- Cuando un hilo encuentra un constructor task, el sistema de ejecución genera una nueva tarea.
+- El momento en que esta tarea se ejecute dependerá del sistema de ejecución, el cual puede ser inmediato o diferido.
+- Se permite el anidamiento de tareas: una tarea puede generar otras tareas.
+- Cláusulas disponibles:
+  - shared, private, firstprivate, default.
+  - untied: por defecto la tarea es ejecutada de inicio a fin por un mismo hilo (no necesariamente el que la generó). untied permite que la tarea pueda ser completada por más de un hilo.
+  - if (expresión): evalúa la expresión.
+    - Si el resultado es verdadero, se genera una tarea.
+    - Si el resultado es falso, se ejecuta el código inmediatamente.
 
-## Multithreading en otros lenguajes
+#### Barreras
+
+- Las barreras para tareas son específicas para un hilo de un equipo.
+- Sintaxis:
+
+```c
+#pragma omp taskwait
+```
+
+- Al llegar a una directiva taskwait, el hilo se suspende hasta que todas sus tareas hijas se hayan completado (**sólo considera las hijas, no sus descendientes**).
+
+#### Reglas de alcance
+
+- Si la cláusula default no fue especificada, entonces:
+  - Las variables no especificadas son firstprivate por defecto (esto es así para garantizar su posible ejecución diferida).
+  - Las variables que fueron especificadas como shared en la directiva inmediatamente anterior, mantienen su condición.
 
 ---
 
