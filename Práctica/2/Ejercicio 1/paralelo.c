@@ -3,6 +3,10 @@
 #include <sys/time.h>
 #include <pthread.h>
 
+int *vectorA, *vectorB, *vectorC;
+int N = -1;
+int cantidad_hilos = -1;
+
 void imprimir_vector(int *vector, int N, char nombre_vector) {
     printf("Vector %c:\n", nombre_vector);
     for(int i = 0; i < N; i++) {
@@ -23,18 +27,26 @@ double dwalltime() {
     return sec;
 }
 
+void* sumar_bloque(void* arg) {
+    int id_hilo = (int)(size_t)arg;
+    int bloque = N / cantidad_hilos;
+    int inicio = id_hilo * bloque;
+    int fin = (id_hilo + 1) * bloque;
+    printf("Hilo %d: procesando elementos de %d a %d\n", id_hilo, inicio, fin);
+    for(int i = inicio; i < fin; i++) {
+        vectorC[i] = vectorA[i] + vectorB[i];
+    }
+    return NULL;
+}
+
 int main(int argc, char *argv[]) {
     double timetick;
-    int N = -1;
     int rango = 15;
     int i;
     int imprimir;
-    int* vectorA;
-    int* vectorB;
-    int* vectorC;
 
-    if(argc != 3) {
-        printf("Error: Se debe enviar el tamaño de los dos vectores (N) y si se quiere imprimir o no (1 o 0)\n");
+    if(argc != 4) {
+        printf("Error: Se debe enviar el tamaño de los dos vectores (N), si se quiere imprimir o no (1 o 0), y la cantidad de hilos\n");
         return 1;
     }
     if(atoi(argv[1]) <= 0) {
@@ -45,9 +57,14 @@ int main(int argc, char *argv[]) {
         printf("Error: 1 o 0\n");
         return 1;
     }
+    if(atoi(argv[3]) <= 0 || atoi(argv[3]) % 2 != 0) {
+        printf("Error: La cantidad de hilos debe ser mayor que 0 y par\n");
+        return 1;
+    }
 
     N = atoi(argv[1]);
     imprimir = atoi(argv[2]);
+    cantidad_hilos = atoi(argv[3]);
 
     // Declarar los tres vectores
     vectorA = (int*)malloc(N * sizeof(int));
@@ -66,10 +83,18 @@ int main(int argc, char *argv[]) {
         imprimir_vector(vectorB, N, 'B');
     }
 
+    pthread_t hilos[cantidad_hilos];
     timetick = dwalltime();
 
-    for(i = 0; i < N; i++) {
-        vectorC[i] = vectorA[i] + vectorB[i];
+    for(i = 0; i < cantidad_hilos; i++) {
+        if(pthread_create(&hilos[i], NULL, sumar_bloque, (void*)(size_t)i)) {
+            printf("Error al crear el hilo %d\n", i);
+            return 1;
+        }
+    }
+
+    for(i = 0; i < cantidad_hilos; i++) {
+        pthread_join(hilos[i], NULL);
     }
 
     printf("Tiempo de ejecución: %f segundos\n", dwalltime() - timetick);

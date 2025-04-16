@@ -22,7 +22,9 @@
 
 ### - Analice cómo distribuir el trabajo entre los hilos. ¿El cómputo es regular? ¿La arquitectura es homogénea?
 
-### Mida el tiempo de ejecución para diferentes valores de N y T = {2,4,8}. Analice el rendimiento.
+### Mida el tiempo de ejecución para diferentes valores de N y T = {2, 4, 8}. Analice el rendimiento.
+
+El cómputo **es regular**, ya que se conoce la cantidad de iteraciones del for para cada hilo. La arquitectura es homogénea, ya que cada core es igual en mi máquina.
 
 Algoritmo secuencial:
 
@@ -31,6 +33,18 @@ Algoritmo secuencial:
 | 300_000   | 0.001127            |
 | 500_000   | 0.001737            |
 | 1_000_000 | 0.003294            |
+
+Algoritmo paralelo:
+
+| N         | Tiempo de ejecución (2 hilos) | Tiempo de ejecución (4 hilos) | Tiempo de ejecución (8 hilos) |
+| --------- | ----------------------------- | ----------------------------- | ----------------------------- |
+| 300_000   | 0.001029                      | 0.002971                      | 0.002012                      |
+| 500_000   | 0.001480                      | 0.003096                      | 0.003509                      |
+| 1_000_000 | 0.002756                      | 0.004567                      | 0.004827                      |
+
+Análisis de Speedup:
+
+Análisis de Eficiencia:
 
 ## 2. Desarrolle un algoritmo paralelo que compute la multiplicación de matrices cuadradas de NxN. Primero, considere a la versión optimizada del ejercicio 6 de la práctica anterior como algoritmo base. Luego, paralelice la versión que computa por bloques. Mida el tiempo de ejecución para N = {512, 1024, 2048, 4096} y T = {2,4,8}. Analice el rendimiento.
 
