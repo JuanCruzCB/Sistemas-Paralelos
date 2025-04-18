@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     int imprimir;
     double promedio = -1.0;
 
-    if(argc != 3) {
+    if(argc != 4) {
         printf("Error: Se debe enviar el tamaño del vector (N), si se quiere imprimir o no (1 o 0) y la cantidad de hilos\n");
         return 1;
     }
@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
     imprimir = atoi(argv[2]);
     cantidad_hilos = atoi(argv[3]);
 
+    pthread_t hilos[cantidad_hilos];
     sem_init(&mi_semaforo, 0, 1);
 
     // Declarar el vector
