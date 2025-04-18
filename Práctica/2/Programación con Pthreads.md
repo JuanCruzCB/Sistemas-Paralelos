@@ -43,5 +43,5 @@
 ## 4. Desarrolle un algoritmo paralelo que calcule el valor promedio, mínimo y máximo de los números almacenados en un vector de tamaño N. Para la sincronización emplee semáforos. Pruebe con diversos tamaños de N y T = {2, 4, 8}. Analice el rendimiento.
 
 - Código en carpeta "Ejercicio 4".
-- ???
+- Uso el semáforo una vez que cada hilo termina de chequear su parte del vector y no cada vez que chequean cada posición de su porción del vector, ya que no hace falta.
 - [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).

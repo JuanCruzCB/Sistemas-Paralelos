@@ -34,8 +34,10 @@ void* hilo_buscador(void* arg) {
 
     sem_wait(&mi_semaforo);
     suma += suma_local;
-    min = (min < min_local) ? min : min_local;
-    max = (max > max_local) ? max : max_local;
+    if(min_local < min)
+        min = min_local;
+    if(max_local > max)
+        max = max_local;
     sem_post(&mi_semaforo);
     pthread_exit(NULL);
 }
