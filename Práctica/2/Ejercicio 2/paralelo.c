@@ -121,7 +121,6 @@ int main(int argc, char* argv[]) {
         pthread_join(hilos[i], NULL);
     }
 
-    // multiplicar_matrices_por_bloques(matriz_a, matriz_b, matriz_c, tamaño_matriz, tamaño_bloque);
     tiempo_ejecucion = dwalltime() - tiempo_inicio;
 
     for (i = 0; i < tamaño_matriz; i++) {
