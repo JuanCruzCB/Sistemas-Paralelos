@@ -38,6 +38,7 @@ int main(int argc, char * argv[]) {
   /* Init matrix operands */
   initvalmat(a, n, 1.0, 0);
   initvalmat(b, n, 1.0, 1);
+  initvalmat(c, n, 0.0, 0);
 
   // printf("Multiplying %d x %d matrices\n", n, n);
 
@@ -87,9 +88,6 @@ void initvalmat(double * mat, int n, double val, int transpose) {
 /* Multiply square matrices, blocked version */
 void matmulblks(double * a, double * b, double * c, int n, int bs) {
   int i, j, k; /* Guess what... */
-
-  /* Init matrix c, just in case */
-  initvalmat(c, n, 0.0, 0);
 
   for (i = 0; i < n; i += bs) {
     for (j = 0; j < n; j += bs) {
