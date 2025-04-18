@@ -24,18 +24,24 @@
 
 ### Mida el tiempo de ejecución para diferentes valores de N y T = {2, 4, 8}. Analice el rendimiento.
 
-El cómputo **es regular**, ya que se conoce la cantidad de iteraciones del for para cada hilo. La arquitectura es homogénea, ya que cada core es igual en mi máquina.
-
-[Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+- Código en carpeta "Ejercicio 1".
+- El cómputo **es regular**, ya que se conoce la cantidad de iteraciones del for para cada hilo. La arquitectura es homogénea, ya que cada core es igual en mi máquina.
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
 
 ## 2. Desarrolle un algoritmo paralelo que compute la multiplicación de matrices cuadradas de NxN. Primero, considere a la versión optimizada del ejercicio 6 de la práctica anterior como algoritmo base. Luego, paralelice la versión que computa por bloques. Mida el tiempo de ejecución para N = {512, 1024, 2048, 4096} y T = {2, 4, 8}. Analice el rendimiento.
 
-Para este ejercicio usaré tamaño de bloque (BS) = 128, ya que es el que mejor resultados me dio en el ejercicio 6 de la práctica 1.
-
-[Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+- Código en carpeta "Ejercicio 2".
+- Para este ejercicio usaré tamaño de bloque (BS) = 128, ya que es el que mejor resultados me dio en el ejercicio 6 de la práctica 1.
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
 
 ## 3. Desarrolle un algoritmo paralelo que cuente la cantidad de veces que un elemento X aparece dentro de un vector de N elementos enteros. Al finalizar, la cantidad de ocurrencias del elemento X debe quedar en una variable llamada ocurrencias. Para la sincronización emplee mutex-locks. Pruebe con diversos tamaños de N y T = {2, 4, 8}. Analice el rendimiento.
 
-[Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+- Código en carpeta "Ejercicio 3".
+- Uso el mutex lock una vez que cada hilo termina de chequear su parte del vector y no cada vez que chequean cada posición de su porción del vector, ya que no hace falta.
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
 
 ## 4. Desarrolle un algoritmo paralelo que calcule el valor promedio, mínimo y máximo de los números almacenados en un vector de tamaño N. Para la sincronización emplee semáforos. Pruebe con diversos tamaños de N y T = {2, 4, 8}. Analice el rendimiento.
+
+- Código en carpeta "Ejercicio 4".
+- ???
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).

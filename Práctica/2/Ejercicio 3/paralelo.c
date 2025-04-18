@@ -84,6 +84,7 @@ int main(int argc, char *argv[]) {
     N = atoi(argv[1]);
     imprimir = atoi(argv[2]);
     x = atoi(argv[3]);
+    cantidad_hilos = atoi(argv[4]);
 
     pthread_t hilos[cantidad_hilos];
 
