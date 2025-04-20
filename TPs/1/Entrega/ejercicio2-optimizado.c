@@ -92,7 +92,6 @@ int main(int argc, char * argv[]) {
         for (j = 0; j < N; j++) {
             A[i * N + j] = random_entre_a_b(1, 4);
             B[i * N + j] = random_entre_a_b(1, 4);
-            B_T[j * N + i] = B[i * N + j];
             C[i * N + j] = random_entre_a_b(1, 4);
             R[i * N + j] = 0.0;
             mul1[i * N + j] = 0.0;
@@ -118,41 +117,51 @@ int main(int argc, char * argv[]) {
     // Comenzar a medir el tiempo.
     timetick = dwalltime();
 
-    // Obtener los mínimos, máximos y promedios, realizar la división y guardar el resultado en una variable auxiliar (cociente).
+    for(i = 0; i < N ; i++)
+        for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
+
+    // Calcular el valor máximo, mínimo y promedio de la matriz A
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
             celdaA = A[i * N + j];
-            celdaB = B[i * N + j];
             sumaA += celdaA;
-            sumaB += celdaB;
-            if (celdaA > maxA) {
-                maxA = celdaA;
-            }
-            if (celdaA < minA) {
-                minA = celdaA;
-            }
-            if (celdaB > maxB) {
-                maxB = celdaB;
-            }
-            if (celdaB < minB) {
-                minB = celdaB;
-            }
+            if (celdaA > maxA) maxA = celdaA;
+            if (celdaA < minA) minA = celdaA;
         }
     }
+
+    // Calcular el valor máximo, mínimo y promedio de la matriz B
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            celdaB = B[i * N + j];
+            sumaB += celdaB;
+            if (celdaB > maxB) maxB = celdaB;
+            if (celdaB < minB) minB = celdaB;
+        }
+    }
+
     promA = sumaA / (N * N);
     promB = sumaB / (N * N);
     cociente = ((maxA * maxB) - (minA * minB)) / (promA * promB);
 
     // Resolver [A * B] y guardarlo en una matriz auxiliar mul1.
+    for (i = 0; i < N; i += block_size) {
+        for (j = 0; j < N; j += block_size) {
+            for (k = 0; k < N; k += block_size) {
+                multiplicar_bloque( & A[i * N + k], & B_T[j * N + k], & mul1[i * N + j], N, block_size);
+            }
+        }
+    }
+
     // Resolver [C * B^T] y guardarlo en una matriz auxiliar mul2.
     for (i = 0; i < N; i += block_size) {
         for (j = 0; j < N; j += block_size) {
             for (k = 0; k < N; k += block_size) {
-                multiplicar_bloque( & A[i * N + k], & B[k * N + j], & mul1[i * N + j], N, block_size);
                 multiplicar_bloque( & C[i * N + k], & B_T[k * N + j], & mul2[i * N + j], N, block_size);
             }
         }
     }
+
 
     // Finalmente multiplicar la matriz auxiliar mul1 por cociente y sumarle a eso la matriz mul2.
     for (i = 0; i < N; i++) {
