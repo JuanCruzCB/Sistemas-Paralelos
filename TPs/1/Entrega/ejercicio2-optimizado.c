@@ -33,9 +33,11 @@ void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double 
 
     for (i = 0; i < block_size; i++) {
         for (j = 0; j < block_size; j++) {
+            double aux = 0.0;
             for (k = 0; k < block_size; k++) {
-                bloque_resultado[i * n + j] += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
+                aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
             }
+            bloque_resultado[i * n + j] = aux;
         }
     }
 }
