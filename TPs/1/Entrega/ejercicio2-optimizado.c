@@ -157,11 +157,10 @@ int main(int argc, char * argv[]) {
     for (i = 0; i < N; i += block_size) {
         for (j = 0; j < N; j += block_size) {
             for (k = 0; k < N; k += block_size) {
-                multiplicar_bloque( & C[i * N + k], & B_T[k * N + j], & mul2[i * N + j], N, block_size);
+                multiplicar_bloque( & C[i * N + k], & B[j * N + k], & mul2[i * N + j], N, block_size);
             }
         }
     }
-
 
     // Finalmente multiplicar la matriz auxiliar mul1 por cociente y sumarle a eso la matriz mul2.
     for (i = 0; i < N; i++) {
