@@ -1543,6 +1543,82 @@ for (i = 0; i < n; i++) {
 
 <h1 align="center">Clase 7 - 25 de abril, 2025</h1>
 
-## Programación en pasaje de mensajes. MPI
+## Programación en pasaje de mensajes
+
+### Fundamentos
+
+### Ventajas y desventajas
+
+### Operaciones Send y Receive
+
+### Operaciones bloqueantes vs no bloqueantes
+
+#### Operación bloqueante sin buffering
+
+#### Operación bloqueante con buffering
+
+#### Operación no bloqueante sin buffering
+
+#### Operación no bloqueante con buffering
+
+#### Resumen
+
+(tabla)
+
+## MPI
+
+### Estándar
+
+### MPI_Init y MPI_Finalize
+
+### Comunicadores
+
+### Adquisición de información
+
+### Tipos de datos
+
+(tabla)
+
+### Tipos de comunicaciones
+
+#### Punto a punto
+
+##### Bloqueante
+
+##### No bloqueante
+
+#### Colectivas
+
+##### Sincronización por barrera
+
+##### Broadcast
+
+##### Gather
+
+##### Gatherv
+
+##### Allgather
+
+##### Allgatherv
+
+##### Scatter
+
+##### Scatterv
+
+##### All to all
+
+##### Reducciones
+
+### Grupos y comunicadores
+
+### Evolución de MPI
+
+---
+
+<h1 align="center">Clase 8 - 2 de mayo, 2025</h1>
+
+---
+
+<h1 align="center">Clase 9 - 9 de mayo, 2025</h1>
 
 ---
