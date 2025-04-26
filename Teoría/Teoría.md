@@ -1547,71 +1547,494 @@ for (i = 0; i < n; i++) {
 
 ### Fundamentos
 
+- Tenemos un conjunto de procesos, donde cada uno tiene su propio espacio de direcciones privado (partición).
+- Cada dato pertenece a una partición.
+- Toda interacción requiere la cooperación de dos procesos.
+- Enviar mensajes sirve para intercambiar datos y/o para sincronizar procesos.
+- Se suele usar en plataformas de memoria distribuida como clusters.
+- Suele utilizar el modelo Single Program Multiple Data.
+
 ### Ventajas y desventajas
+
+- El programador tiene control total para lograr sistemas más eficientes y escalables. ✅
+- Puede implementarse eficientemente en muchas arquitecturas paralelas. ✅
+- El rendimiento es más fácil de predecir. ✅
+- Mayor complejidad al implementar estos algoritmos para lograr alto rendimiento. ❌
 
 ### Operaciones Send y Receive
 
+- Sintaxis:
+
+```c
+send(void *sendbuf, int nelems, int dest)
+receive(void *recvbuf, int nelems, int source)
+```
+
+- Ejemplo:
+
+```c
+// Proceso 0
+a = 100;
+send(&a, 1, 1);
+a = 0;
+
+// Proceso 1
+receive(&b, 1, 0);
+```
+
 ### Operaciones bloqueantes vs no bloqueantes
 
-#### Operación bloqueante sin buffering
+#### Bloqueante
 
-#### Operación bloqueante con buffering
+- Ocurren dos cosas:
+  - Se devuelve el control al proceso llamador una vez que todos los recursos involucrados (por ejemplo, el buffer de envío/recepción) pueden ser reutilizados. Aplica tanto al emisor como al receptor.
+  - Se garantiza que todas las transiciones de estado iniciadas por la operación fueron completadas.
+- Una operación bloqueante puede ser con o sin buffering.
 
-#### Operación no bloqueante sin buffering
+##### Sin buffering
 
-#### Operación no bloqueante con buffering
+- El `send` se bloquea hasta que el receptor no termine el receive del mensaje.
+- Produce tiempo ocioso en los procesadores.
+- Puede haber deadlocks si las sentencias de comunicación no coinciden.
+
+##### Con buffering
+
+- El `send` se bloquea hasta que el mensaje llega a un buffer (intermedio y diferente al del receptor) prealocado del sistema.
+- Transmisión del mensaje:
+  - Si se tiene hardware específico para comunicación asincrónica no hace falta que intervenga la CPU, el proceso emisor copia el mensaje a un buffer local y luego este hardware específico transmite ese mensaje al buffer del receptor.
+  - Si no se tiene hardware especial el emisor transmite el mensaje al buffer del receptor y recién ahí puede continuar.
+- Reducen el tiempo ocioso de los procesadores pero aumentan el costo por manejo de buffers.
+- Los buffers intermedios tienen capacidad limitada, por ende si se llega al límite, el emisor quedará bloqueado.
+- Reduce la ocurrencia de deadlocks, aunque no los evita del todo.
+
+#### No bloqueante
+
+- Prioriza el rendimiento.
+- Devuelven el control de la operación de forma inmediata.
+- No garantiza que los recursos involucrados puedan ser reutilizados de forma inmediata.
+- No garantiza que todas las transiciones de estado iniciadas por la operación hayan sido completadas.
+- Requiere chequear que una comunicación ha terminado: deja en manos del programador asegurar la semántica del send.
+- Una operación no bloqueante puede ser con o sin buffering.
+
+#### Sin buffering
+
+- La comunicación comienza al llegar al receive.
+
+#### Con buffering
+
+- El emisor usa DMA para copiar los datos a un buffer prealocado mientras el proceso continúa ejecutándose.
+- Reduce el tiempo en el que el dato no está seguro.
 
 #### Resumen
 
-(tabla)
+| Buffering | Operación bloqueante                                                           | Operación no bloqueante                                                                                                      |
+| --------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Si        | El emisor retoma el control una vez que los datos han sido copiados al buffer. | El emisor retoma el control una vez que ha iniciado la transferencia DMA al buffer, aun cuando podría no haberse completado. |
+| No        | El emisor se bloquea hasta que el receptor alcance el receive correspondiente. | El emisor envía los datos cuando el receptor alcanza el receive.                                                             |
+
+- Semántica de las operaciones:
+  - Asegurada en bloqueante.
+  - Responsabilidad del programador de asegurarla en no bloqueante.
 
 ## MPI
 
 ### Estándar
 
+- A principios de los 90 existían numerosas librerías para pasaje de mensaje (no compatibles). Un grupo de representantes de las universidades y de la industria se reunieron para crear un estándar para programación basado en pasaje de mensajes.
+- MPI define una **librería estándar** que puede ser empleada desde C o Fortran (y potencialmente desde otros lenguajes).
+- Existen diferentes implementaciones de MPI en la actualidad (OpenMPI, MPICH, Intel MPI, IBM MPI, entre otras), aunque no todas soportan la especificación en forma completa → Aspecto a considerar a la hora de elegir la implementación MPI.
+- Usa el modelo Single Program Multiple Data (SPMD).
+- Define la sintaxis y la semántica de más de 400 rutinas.
+- Se importa usando `# include <mpi.h>`.
+- Se compila usando `mpicc codigo.c -o ejecutable`.
+- Se ejecuta usando `mpirun -np <cantidad-de-procesos> ejecutable`.
+
 ### MPI_Init y MPI_Finalize
+
+- `MPI_Init`:
+
+  - Inicializa el entorno MPI.
+  - Debe ser invocada por todos los procesos antes que cualquier otro llamado a rutinas MPI.
+  - Sintaxis:
+
+  ```c
+  MPI_Init (int *argc, char **argv);
+  ```
+
+- `MPI_Finalize`:
+
+  - Cierra el entorno MPI.
+  - Debe ser invocado por todos los procesos como último llamado a rutinas MPI.
+  - Sintaxis:
+
+  ```c
+  MPI_Finalize();
+  ```
 
 ### Comunicadores
 
-### Adquisición de información
+- Indican qué procesos pueden comunicarse entre sí.
+- Son variables de tipo MPI_Comm y almacenan información sobre los procesos que pertenecen a él.
+- Un proceso puede pertenecer a varios comunicadores.
+- Existe un comunicador default al cual todos los procesos de la aplicación pertenecen: MPI_COMM_WORLD.
+- Cada operación de comunicación debe indicar el comunicador que se quiere usar.
+
+#### Adquisición de información
+
+- `MPI_Comm_size`:
+
+  - Indica la cantidad de procesos en el comunicador.
+  - Sintaxis:
+
+  ```c
+  MPI_Comm_size(MPI_Comm comunicador, int *cantidad);
+  ```
+
+- `MPI_Comm_rank`:
+
+  - Indica el rank (id) del proceso dentro de ese comunicador.
+  - Es un valor entre 0 y cantidad.
+  - Cada proceso puede tener un rank distinto en cada comunicador.
+  - Sintaxis:
+
+  ```c
+  MPI_Comm_rank(MPI_Comm comunicador, int *rank);
+  ```
 
 ### Tipos de datos
 
-(tabla)
+| C                  | MPI                |
+| ------------------ | ------------------ |
+| signed char        | MPI_CHAR           |
+| signed short int   | MPI_SHORT          |
+| signed int         | MPI_INT            |
+| signed long int    | MPI_LONG           |
+| unsigned char      | MPI_UNSIGNED_CHAR  |
+| unsigned short int | MPI_UNSIGNED_SHORT |
+| unsigned int       | MPI_UNSIGNED       |
+| unsigned long int  | MPI_UNSIGNED_LONG  |
+| float              | MPI_FLOAT          |
+| double             | MPI_DOUBLE         |
+| long double        | MPI_LONG_DOUBLE    |
+|                    | MPI_BYTE           |
+|                    | MPI_PACKED         |
 
 ### Tipos de comunicaciones
 
 #### Punto a punto
 
+- Involucran a dos procesos.
+- Pueden ser bloqueantes o no bloqueantes.
+
 ##### Bloqueante
+
+###### Send
+
+- MPI provee 4 opciones para realizar un send bloqueante.
+- `MPI_Send`:
+
+  - Rutina básica para enviar datos a otro proceso.
+  - Retorna el control solo cuando el buffer del emisor está listo para ser reusado, lo cual no significa necesariamente que el receptor ya lo haya recibido.
+  - Puede usar buffering o no, depende de la implementación.
+  - Sintaxis:
+
+  ```c
+  MPI_Send(void *buf, int cantidad, MPI_Datatype tipoDato, int destino, int tag, MPI_Comm comunicador);
+  ```
+
+- `MPI_Bsend`:
+
+  - Buffered send.
+  - Permite implementar buffering a nivel de usuario, ya sea para mayor customización o porque el sistema no implementa buffers.
+  - Sintaxis:
+
+  ```c
+  MPI_Bsend(void *buf, int cantidad, MPI_Datatype tipoDato, int destino, int tag, MPI_Comm comunicador);
+  ```
+
+- `MPI_Ssend`:
+
+  - Synchronous send.
+  - Retorna el control solo cuando el buffer del emisor está listo para ser reusado y el proceso receptor ha comenzado a recibir el mensaje.
+  - Sintaxis:
+
+  ```c
+  MPI_Ssend(void *buf, int cantidad, MPI_Datatype tipoDato, int destino, int tag, MPI_Comm comunicador);
+  ```
+
+- `MPI_Rsend`:
+
+  - Ready send.
+  - Solo puede ser invocado si el proceso receptor ya se encuentra listo para recibir, es decir, se encuentra posicionada en el receive correspondiente.
+  - Si se invoca a esta operación pero el receptor no está esperando en el receive, la operación será errónea y el resultado no garantizado.
+  - No se suele usar.
+  - Sintaxis:
+
+  ```c
+  MPI_Rsend(void *buf, int cantidad, MPI_Datatype tipoDato, int destino, int tag, MPI_Comm comunicador);
+  ```
+
+###### Receive
+
+- `MPI_Recv`:
+
+  - Rutina básica para recibir datos de otro proceso.
+  - Puede usar dos comodines:
+    - MPI_ANY_SOURCE como reemplazo del argumento origen. Permite recibir de cualquier proceso.
+    - MPI_ANY_TAG como reemplazo del argumento tag. Permite que la correspondencia solo sea obligatoria para el argumento origen pero no necesariamente para el tag también.
+  - Sintaxis:
+
+  ```c
+  MPI_Recv(void *buf, int cantidad, MPI_Datatype tipoDato, int origen, int tag, MPI_Comm comunicador, MPI_Status *estado);
+  ```
+
+- `MPI_Get_count`:
+
+  - Obtiene la cantidad de elementos recibidos.
+  - Sintaxis:
+
+  ```c
+  MPI_Get_count(MPI_Status *estado, MPI_Datatype tipoDato, int *cantidad);
+  ```
 
 ##### No bloqueante
 
+- Comienzan la operación de comunicación e inmediatamente devuelven el control, sin garantizar que la operación haya terminado.
+- Permiten solapar cómputo con comunicación.
+- Suelen mejorar la performance del programa.
+- Es responsabilidad del programador asegurar la semántica de las operaciones.
+
+###### Send
+
+- `MPI_Isend`:
+  - Realiza un envío en forma no bloqueante.
+  - Sintaxis:
+  ```c
+  MPI_Isend(void *buf, int cantidad, MPI_Datatype tipoDato, int destino, int tag, MPI_Comm comunicador, MPI_Request *solicitud);
+  ```
+
+###### Receive
+
+- `MPI_Irecv`:
+  - Realiza una recepción en forma no bloqueante.
+  - Sintaxis:
+  ```c
+  MPI_Irecv(void *buf, int cantidad, MPI_Datatype tipoDato, int origen, int tag, MPI_Comm comunicador, MPI_Request *solicitud);
+  ```
+
+###### Misceláneas
+
+- `MPI_Test`:
+
+  - Evalúa si el send o receive finalizó.
+  - Sintaxis:
+
+  ```c
+  MPI_Test(MPI_REQUEST *solicitud, int *flag, MPI_STATUS *estado);
+  ```
+
+- `MPI_Wait`:
+  - Bloquea al proceso hasta que la operación indicada en el request haya terminado.
+  - Evita busy-waiting.
+  - Sintaxis:
+  ```c
+  MPI_Wait(MPI_REQUEST *solicitud, MPI_STATUS *estado);
+  ```
+
+##### Orden y fairness
+
+- En las comunicaciones punto a punto, se deben tener varias cosas en cuenta:
+- Respecto al orden:
+  - MPI asegura que los mensajes no se sobrepasan entre ellos.
+  - Si un proceso envía dos mensajes M1 y M2 seguidos a un receptor, y el receptor ejecuta un receive, el orden de recepción será M1 M2.
+  - Si un proceso ejecuta dos receive seguidos y hay un mensaje pendiente que coincide con ambos, el primer receive recibirá antes que el segundo.
+- Respecto al fairness:
+  - MPI no lo asegura.
+  - Es responsabilidad del programador evitar la inanición de procesos.
+  - Ejemplo:
+    - P0 le envía un mensaje a P2.
+    - P1 envía otro mensaje a P2 que compite con el que envió P0.
+    - P2 solo recibe uno de los dos mensajes.
+
 #### Colectivas
+
+- Involucran a dos o más procesos.
+- Pueden ser bloqueantes o no bloqueantes.
+- Facilitan la programación.
+- Mejoran el rendimiento ya que están muy optimizadas.
+- Todos los procesos del comunicador deben llamar a la rutina colectiva.
+- Hay 3 tipos de operaciones colectivas:
+  - **Sincronización** (barreras).
+  - **Transferencia de datos** (broadcast, gather, etc).
+  - **Computaciones colectivas** (reducción).
 
 ##### Sincronización por barrera
 
+- El proceso que llama a esta función queda bloqueado hasta que todos los procesos del comunicador pasado como argumento hayan llegado también a la barrera.
+- Sintaxis:
+
+```c
+MPI_Barrier(MPI_Comm comunicador);
+```
+
 ##### Broadcast
+
+- Un proceso envía el mismo mensaje a todos los procesos del comunicador pasado como argumento.
+- Sintaxis:
+
+```c
+MPI_Bcast(void *buf, int cantidad, MPI_Datatype tipoDato, int origen, MPI_Comm comunicador);
+```
 
 ##### Gather
 
+- Permite que todos los procesos excepto uno de un comunicador envíen un dato a un proceso en particular de ese comunicador.
+- Requiere que todos los procesos aporten la misma cantidad de datos.
+- Este proceso elegido denominado destino recibirá cada dato y los concatenará en **orden del id que tiene cada proceso en el comunicador**.
+- Sintaxis:
+
+```c
+MPI_Gather(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int cantRec, MPI_Datatype tipoDatoRec, int destino, MPI_Comm comunicador);
+```
+
 ##### Gatherv
+
+- Igual que gather solo que cada proceso puede enviar una cantidad variable de datos.
+- Sintaxis:
+
+```c
+MPI_Gatherv(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int *cantsRec, int *desplazamientos, MPI_Datatype tipoDatoRec, int destino, MPI_Comm comunicador);
+```
 
 ##### Allgather
 
+- Igual que gather solo que el resultado concatenado es enviado a todos los procesos y no solo a uno.
+- Sintaxis:
+
+```c
+MPI_AllGather(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int cantRec, MPI_Datatype tipoDatoRec, MPI_Comm comunicador);
+```
+
 ##### Allgatherv
+
+- Igual que gatherv solo que el resultado concatenado es enviado a todos los procesos y no solo a uno.
+- Sintaxis:
+
+```c
+MPI_AllGatherv(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int *cantsRec, int *desplazamientos, MPI_Datatype tipoDatoRec, MPI_Comm comunicador);
+```
 
 ##### Scatter
 
+- Reparte un vector de datos entre todos los procesos (incluyendo a sí mismo) de forma **equitativa**.
+- Sintaxis:
+
+```c
+MPI_Scatter(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int cantRec, MPI_Datatype tipoDatoRec, int origen, MPI_Comm comunicador);
+```
+
 ##### Scatterv
+
+- Igual que scatter solo que la repartición es variable y no equitativa.
+- Sintaxis:
+
+```c
+MPI_Scatterv(void *sendbuf, int *cantsEnvio, int *desplazamientos, MPI_Datatype tipoDatoEnvio, void *recvbuf, int cantRec, MPI_Datatype tipoDatoRec, int origen, MPI_Comm comunicador);
+```
 
 ##### All to all
 
-##### Reducciones
+- Cada proceso del comunicador reparte un conjunto de datos entre todos los demás procesos (incluyendo a sí mismo) y luego recibe un bloque de datos de cada uno de ellos.
+- Todas las porciones son de mismo tamaño.
+- Es equivalente a scatter + gather.
+- Sintaxis:
+
+```c
+MPI_Alltoall(void *sendbuf, int cantEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int cantRec, MPI_Datatype tipoDatoRec, MPI_Comm comunicador);
+```
+
+##### All to all V
+
+- Igual a All to all solo que las porciones son de tamaño variable.
+- Sintaxis:
+
+```c
+MPI_Alltoallv(void *sendbuf, int *cantsEnvio, int *despEnvio, MPI_Datatype tipoDatoEnvio, void *recvbuf, int *cantsRec, int *despRec, MPI_Datatype tipoDatoRec, MPI_Comm comunicador);
+```
+
+##### Reducción todos a uno
+
+- Permite que todo proceso que pertenece a un comunicador envíe datos a uno de los procesos, el cual recibe los datos y los combina aplicando una operación.
+- Sintaxis:
+
+```c
+MPI_Reduce(void *sendbuf, void *recvbuf, int cantidad, MPI_Datatype tipoDato, MPI_Op operación, int destino, MPI_Comm comunicador);
+```
+
+##### Reducción todos a todos
+
+- Igual al anterior solo que el resultado es envíado a todos y no solo uno.
+- Sintaxis:
+
+```c
+MPI_Allreduce(void *sendbuf, void *recvbuf, int cantidad, MPI_Datatype tipoDato, MPI_Op operación, MPI_Comm comunicador);
+```
+
+### Consulta de comunicaciones pendientes
+
+- Es posible consultar si hay comunicaciones pendiente y algunos de sus datos.
+- `MPI_Probe`:
+
+  - Bloqueante.
+  - Bloquea al proceso hasta que llegue un mensaje que cumpla con el origen y tag.
+  - Sintaxis:
+
+  ```c
+  MPI_Probe(int origen, int tag, MPI_Comm comunicador, MPI_Status *estado);
+  ```
+
+- `MPI_Iprobe`:
+
+  - No bloqueante.
+  - Chequea por el arribo de un mensaje que cumpla con el origen y tag.
+  - Puede usar comodines en origen y tag.
+  - Sintaxis:
+
+  ```c
+  MPI_Iprobe(int origen, int tag, MPI_Comm comunicador, int *flag, MPI_Status *estado);
+  ```
 
 ### Grupos y comunicadores
 
+- Cuando las comunicaciones entre los procesos de un programa se realizan entre un subconjunto de ellos y no todos, MPI provee mecanismos para dividir el grupo de procesos de un comunicador en subgrupos, cada uno con su correspondiente comunicador.
+- Sintaxis:
+
+```c
+MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
+```
+
 ### Evolución de MPI
+
+- **MPI-1**: 1994.
+- **MPI-2**: 1998.
+  - Generación dinámica de procesos (durante la ejecución).
+  - Comunicaciones one-sided.
+  - Soporte para comunicaciones colectivas de a grupos.
+  - Soporte para C++.
+  - Entrada/Salida paralela.
+- **MPI-3**: 2012.
+  - Comunicaciones colectivas no bloqueantes.
+  - Más soporte para comunicaciones one-sided.
+  - Más soporte para comunicaciones colectivas de a grupos.
+  - Soporte para Fortran 2008.
+- **Hoy**:
+  - La mayoría de las implementaciones en distintos lenguajes de programación siguen la versión 1.2 del estándar.
+  - Ejemplos de implementaciones:
+    - Python: mpi4py, ScientificPython.
+    - Java: Java-MPI.
+    - R: Rmpi.
+    - Rust: rsmpi.
+    - Julia: MPI.jl.
 
 ---
 
