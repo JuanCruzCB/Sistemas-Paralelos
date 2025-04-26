@@ -12,8 +12,7 @@ int main(int argc, char * argv[]) {
     scale = 2.78;
     x = 0.0;
 
-    #pragma omp parallel
-    for
+    #pragma omp parallel for
     for (i = 1; i <= N; i++) {
         x = x + sqrt(i * scale) + 2 * x;
     }

@@ -18,8 +18,7 @@ int main(int argc, char * argv[]) {
     // I => fila J=> columna.
 
     for (i = 0; i < N; i++) {
-        #pragma omp parallel
-        for shared(A) private(i, j)
+        #pragma omp parallel for shared(A) private(i, j)
         for (j = 0; j < N; j++) {
             A[i * N + j] = i * j;
         }
