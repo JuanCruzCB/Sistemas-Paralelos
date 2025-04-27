@@ -18,6 +18,37 @@
 
 ## 1. El programa ejercicio1.c inicializa una matriz de NxN de la siguiente manera: A[i, j] = i \* j, para todo i, j = 0..N-1. Compile y ejecute. ¿Qué problemas tiene el programa? Corríjalo.
 
+- El programa **ejercicio1.c** recibe dos argumentos:
+  - N (tamaño de la matriz)
+  - T (cantidad de hilos).
+- Luego, intenta inicializar una matriz en forma paralela usando OpenMP, haciendo que cada hilo inicialize una porción de la matriz.
+- Cuando compilo **ejercicio1.c**, el compilador muestra una advertencia:
+
+```bash
+$ gcc -fopenmp -o ejercicio1 ejercicio1.c -Wall
+
+ejercicio1.c: In function 'main._omp_fn.0':
+ejercicio1.c:23:30: warning: 'i' may be used uninitialized [-Wmaybe-uninitialized]
+  23 | A[i * N + j] = i * j;
+     |
+ejercicio1.c:7:9: note 'i' was declared here
+   7 | int i, j;
+     |
+```
+
+- Cuando intento ejecutar el programa ignorando la advertencia, se produce un error:
+
+```bash
+$ ./ejercicio1 16 2
+
+Segmentation fault (core dumped)
+```
+
+- El problema que tiene el código es que la variable índice **i** se declara como privada de los hilos en la línea `#pragma omp parallel for shared(A) private (i, j)` pero dentro del bloque paralelo no se inicializa nunca i, por ende vale basura.
+- Para solucionarlo, muevo la línea mencionada antes del for **externo** y no el interno.
+- Código corregido en carpeta "Ejercicio 1".
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+
 ## 2. Analice y compile el programa ejercicio2.c. Ejecute varias veces y compare los resultados de salida para diferente número de threads. ¿Cuál es el problema? ¿Se le ocurre una solución? Nota: al compilar, agregue el flag -lm.
 
 ## 3. El programa matrices.c realiza la multiplicación de 2 matrices cuadradas de NxN (C=AxB). Utilizando la directiva parallel for paralelice de dos formas:
