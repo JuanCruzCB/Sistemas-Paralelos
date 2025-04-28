@@ -51,6 +51,40 @@ Segmentation fault (core dumped)
 
 ## 2. Analice y compile el programa ejercicio2.c. Ejecute varias veces y compare los resultados de salida para diferente número de threads. ¿Cuál es el problema? ¿Se le ocurre una solución? Nota: al compilar, agregue el flag -lm.
 
+- El programa parece realizar una sumatoria de una ecuación, acumulando el resultado en la variable **x**.
+- Compilo el programa:
+
+```bash
+$ gcc -fopenmp -o ejercicio2 ejercicio2.c -lm -Wall
+```
+
+- Resultados de ejecuciones para diferente número de threads pero mismo N (2):
+
+```bash
+./ejercicio2 2 1
+
+7.359965
+
+./ejercicio2 2 2
+
+7.359965
+
+./ejercicio2 2 4
+
+8.741229
+
+./ejercicio2 2 8
+
+7.359965
+```
+
+- Se puede ver que el resultado a veces es erróneo cuando usamos más de un hilo.
+- El problema de este programa es que tenemos una variable compartida **x** que no se está protegiendo adecuadamente, por lo cual los distintos hilos pueden fácilmente pisar el valor de esta variable entre ellos.
+- No se me ocurre ninguna forma viable de solucionar el problema. Se podría usar un mutex para la línea `x = x + sqrt(i * scale) + 2 * x;` vía `#pragma omp critical`, pero mataría todo el paralelismo y la solución sería igual en performance que la secuencial.
+  - Como el valor nuevo de x siempre depende del valor que tenía antes, hay demasiada dependencia como para que la solución se pueda paralelizar eficientemente.
+- Solución alternativa (no eficiente) con mutex en carpeta "Ejercicio 2".
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+
 ## 3. El programa matrices.c realiza la multiplicación de 2 matrices cuadradas de NxN (C=AxB). Utilizando la directiva parallel for paralelice de dos formas:
 
 ### a. Repartiendo entre los threads el cálculo de las filas de C. Es decir, repartiendo el trabajo del primer for.
