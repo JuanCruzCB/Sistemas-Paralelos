@@ -93,6 +93,11 @@ $ gcc -fopenmp -o ejercicio2 ejercicio2.c -lm -Wall
 
 ### Compare los tiempos de ambas soluciones variando el número de threads.
 
+- Código en carpeta "Ejercicio 3".
+- Para repartir entre los threads el cálculo de las filas de C, uso `pragma omp parallel for private(j, k)` antes del primer for.
+- Para repartir entre los threads el cálculo de las columnas de cada fila de C, uso `pragma omp parallel for private(j, k)` antes del segundo for.
+- [Tiempos y análisis de rendimiento](https://docs.google.com/spreadsheets/d/1cv1V8cbV4wRPSSgeHD8KuhjBkWiOzVBkzNqe3Hzj1eg/edit?usp=sharing).
+
 ## 4. El programa traspuesta.c calcula la transpuesta de una matriz triangular de NxN. Compile y ejecute para 4 threads comparándolo con el algoritmo secuencial. Si bien el programa computa correctamente la transpuesta, éste tiene un problema desde el punto de vista del rendimiento. Analice las salidas y describa de qué problema se trata. ¿Qué cláusula se debe usar para corregir el problema? Describa brevemente la cláusula OpenMP que resuelve el problema y las opciones que tiene. Corrija el algoritmo y ejecute de nuevo comparando con los resultados anteriores.
 
 ## 5. El programa mxm.c realiza 2 multiplicaciones de matrices de MxM (D=AxB y E=CxB). Paralelizar utilizando sections de forma que cada una de las multiplicaciones se realice en una sección y almacenar el código paralelo como mxmSections.c. Compile y ejecute con 2 threads y luego con 4 threads, ¿se consigue mayor speedup al incrementar la cantidad de threads? ¿Por qué?
