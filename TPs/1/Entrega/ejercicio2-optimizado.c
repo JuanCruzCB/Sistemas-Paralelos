@@ -55,8 +55,9 @@ int chequear_resultados(double * A, double * B, double * B_T, double * C, double
     // Chequear que Cociente × [A×B] + [C×B_T] es correcto.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            printf("%f\n", (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]));
-            if (R[i * N + j] != (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j])) {
+            double valor_esperado = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
+            double diferencia = (R[i * N + j] - valor_esperado >= 0) ? (R[i * N + j] - valor_esperado) : -(R[i * N + j] - valor_esperado);
+            if (diferencia > EPSILON) {
                 printf("Error en la multiplicación Cociente × [A×B] + [C×B_T] en la posición [%d][%d]\n", i, j);
                 return 1;
             }
