@@ -1,13 +1,69 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
-#include <stdbool.h>
 
-void imprimir_matriz(double * A, int N) {
-    for (int i = 0; i < N * N; i++) {
-        printf("%.2f ", A[i]);
+#define EPSILON 1e-6
+
+int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
+    int i, j;
+
+    printf("Chequeando resultados...\n");
+    // Chequear que A×B es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] != B[j * N + i]) {
+                printf("Error en la multiplicación A×B en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
     }
-    printf("\n\n");
+    printf("Multiplicación A×B correcta ya que A×B = B.\n");
+
+    // Chequear que C×B_T es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (c_por_bt[i * N + j] != B_T[j * N + i]) {
+                printf("Error en la multiplicación C×B_T en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación C×B_T correcta ya que C×B_T = B_T.\n");
+
+    // Chequear que Cociente es correcto.
+    double numerador = (1 * (N * N)) - (0 * 1);
+    double denominador = (1.0 / N) * ((N * N + 1) / 2.0);
+    double valor_esperado = numerador / denominador;
+    double diferencia = (cociente - valor_esperado >= 0) ? (cociente - valor_esperado) : -(cociente - valor_esperado);
+    if(diferencia > EPSILON) {
+        printf("Error en el cálculo del cociente.\n");
+        return 1;
+    }
+    printf("Cociente correcto.\n");
+
+    // Chequear que Cociente × [A×B] es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] * cociente != B[j * N + i] * cociente) {
+                printf("Error en la multiplicación Cociente × [A×B] en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación Cociente × [A×B] correcta ya que Cociente × [A×B] = B × Cociente.\n");
+
+    // Chequear que Cociente × [A×B] + [C×B_T] es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            printf("%f\n", (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]));
+            if (R[i * N + j] != (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j])) {
+                printf("Error en la multiplicación Cociente × [A×B] + [C×B_T] en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación Cociente × [A×B] + [C×B_T] correcta.\n");
+    return 0;
 }
 
 void imprimir_matriz_por_fila(double *A, int N) {
@@ -38,13 +94,13 @@ double dwalltime() {
     return sec;
 }
 
-void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int block_size) {
+void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int tam_bloque) {
     int i, j, k;
 
-    for (i = 0; i < block_size; i++) {
-        for (j = 0; j < block_size; j++) {
+    for (i = 0; i < tam_bloque; i++) {
+        for (j = 0; j < tam_bloque; j++) {
             double aux = 0.0;
-            for (k = 0; k < block_size; k++) {
+            for (k = 0; k < tam_bloque; k++) {
                 aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
             }
             bloque_resultado[i * n + j] += aux;
@@ -55,42 +111,39 @@ void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double 
 int main(int argc, char * argv[]) {
     /* ARGUMENTOS */
     int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
-    int block_size = -1;                // Tamaño del bloque para la multiplicación por bloques.
-    int imprimir_matrices = -1;         // Indica si se deben imprimir las matrices o no.
+    int tam_bloque = -1;                // Tamaño del bloque para la multiplicación por bloques.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;   // Matrices A, B, B transpuesta, C, R, A×B, C×B_T.
     int i, j, k; 						// Índices para recorrer las matrices → i para fila; j para columna.
-    double valorInicial = 1.0;          // Valor inicial de la matriz B.
+    double acumulador = 1.0;            // Acumulador para los valores de la matriz B.
     double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
 
     /* MÍNIMO, MÁXIMO, PROMEDIO */
-    double maxA = -1.0;					// Valor máximo de la matriz A.
-    double maxB = -1.0;					// Valor máximo de la matriz B.
-    double minA = 999.0;				// Valor mínimo de la matriz A.
-    double minB = 999.0;				// Valor mínimo de la matriz B.
-    double promA = 0.0;					// Valor promedio de la matriz A.
-    double promB = 0.0;					// Valor promedio de la matriz B.
-    double sumaA = 0.0;					// Acumulador de los valores de la matriz A.
-    double sumaB = 0.0;					// Acumulador de los valores de la matriz B.
-    double celdaA = 0.0;				// Celda temporal de la matriz A.
-    double celdaB = 0.0;				// Celda temporal de la matriz B.
+    double max_A = -1.0;					// Valor máximo de la matriz A.
+    double max_B = -1.0;					// Valor máximo de la matriz B.
+    double min_A = 999.0;				// Valor mínimo de la matriz A.
+    double min_B = 999.0;				// Valor mínimo de la matriz B.
+    double prom_A = 0.0;					// Valor promedio de la matriz A.
+    double prom_B = 0.0;					// Valor promedio de la matriz B.
+    double suma_A = 0.0;					// Acumulador de los valores de la matriz A.
+    double suma_B = 0.0;					// Acumulador de los valores de la matriz B.
+    double celda_A = 0.0;				// Celda temporal de la matriz A.
+    double celda_B = 0.0;				// Celda temporal de la matriz B.
 
     double timetick; 					// Se usa para medir el tiempo.
 
-    // Se debe enviar el N como argumento. Si no se envía, alertar y terminar.
+    // Se debe enviar el N y el tamaño de bloque como argumento. Si no se envía, alertar y terminar.
     if (
-        (argc != 4) ||
+        (argc != 3) ||
         ((N = atoi(argv[1])) <= 0) ||
-        ((block_size = atoi(argv[2])) <= 0) ||
-        (block_size > N) ||
-        (N % block_size != 0) ||
-        (imprimir_matrices = atoi(argv[3])) < 0 ||
-        (imprimir_matrices = atoi(argv[3])) > 1
+        ((tam_bloque = atoi(argv[2])) <= 0) ||
+        (tam_bloque > N) ||
+        (N % tam_bloque != 0)
     ) {
         printf("\nSe deben enviar 3 parámetros:\n");
-        printf("El N de la dimensión de las matrices, el tamaño del bloque y un 0 o 1 indicando si se quiere imprimir las matrices o no.\n");
-        printf("Ejemplo con N = 16, tamaño de bloque = 4 y sin imprimir: \n ./test 16 4 0\n");
+        printf("El N de la dimensión de las matrices, el tamaño del bloque.\n");
+        printf("Ejemplo con N = 16 y tamaño de bloque = 4: \n ./programa 16 4\n");
         exit(1);
     }
 
@@ -99,9 +152,9 @@ int main(int argc, char * argv[]) {
     B = (double * ) malloc(N * N * sizeof(double));
     B_T = (double * ) malloc(N * N * sizeof(double));
     C = (double * ) malloc(N * N * sizeof(double));
-    R = (double * ) malloc(N * N * sizeof(double));
     a_por_b = (double * ) malloc(N * N * sizeof(double));
     c_por_bt = (double * ) malloc(N * N * sizeof(double));
+    R = (double * ) malloc(N * N * sizeof(double));
 
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     for (i = 0; i < N; i++) {
@@ -115,17 +168,17 @@ int main(int argc, char * argv[]) {
                 C[i * N + j] = 0.0;
             }
 
-            B[j * N + i] = valorInicial;
+            B[j * N + i] = acumulador;
             R[i * N + j] = 0.0;
             a_por_b[i * N + j] = 0.0;
             c_por_bt[i * N + j] = 0.0;
 
-            valorInicial += 1.0;
+            acumulador += 1.0;
         }
     }
 
-    // Imprimir las matrices.
-  	if (imprimir_matrices) {
+    // Imprimir las matrices si N es chico.
+  	if (N <= 4) {
         printf("Matriz A (ordenada por filas e inicializada de forma incremental):\n");
         imprimir_matriz_por_fila(A, N);
         printf("Matriz B (ordenada por columnas e inicializada como matriz identidad):\n");
@@ -144,41 +197,41 @@ int main(int argc, char * argv[]) {
     // Calcular el valor máximo, mínimo y promedio de la matriz A.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            celdaA = A[i * N + j];
-            sumaA += celdaA;
-            if (celdaA > maxA) maxA = celdaA;
-            if (celdaA < minA) minA = celdaA;
+            celda_A = A[i * N + j];
+            suma_A += celda_A;
+            if (celda_A > max_A) max_A = celda_A;
+            if (celda_A < min_A) min_A = celda_A;
         }
     }
 
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            celdaB = B[i * N + j];
-            sumaB += celdaB;
-            if (celdaB > maxB) maxB = celdaB;
-            if (celdaB < minB) minB = celdaB;
+            celda_B = B[i * N + j];
+            suma_B += celda_B;
+            if (celda_B > max_B) max_B = celda_B;
+            if (celda_B < min_B) min_B = celda_B;
         }
     }
 
-    promA = sumaA / (N * N);
-    promB = sumaB / (N * N);
-    cociente = ((maxA * maxB) - (minA * minB)) / (promA * promB);
+    prom_A = suma_A / (N * N);
+    prom_B = suma_B / (N * N);
+    cociente = ((max_A * max_B) - (min_A * min_B)) / (prom_A * prom_B);
 
-    // Resolver [A * B] y guardarlo en una matriz auxiliar a_por_b.
-    for (i = 0; i < N; i += block_size) {
-        for (j = 0; j < N; j += block_size) {
-            for (k = 0; k < N; k += block_size) {
-                multiplicar_bloque( & A[i * N + k], & B[j * N + k], & a_por_b[i * N + j], N, block_size);
+    // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
+    for (i = 0; i < N; i += tam_bloque) {
+        for (j = 0; j < N; j += tam_bloque) {
+            for (k = 0; k < N; k += tam_bloque) {
+                multiplicar_bloque( & A[i * N + k], & B[j * N + k], & a_por_b[i * N + j], N, tam_bloque);
             }
         }
     }
 
-    // Resolver [C * B^T] y guardarlo en una matriz auxiliar c_por_bt.
-    for (i = 0; i < N; i += block_size) {
-        for (j = 0; j < N; j += block_size) {
-            for (k = 0; k < N; k += block_size) {
-                multiplicar_bloque( & C[i * N + k], & B_T[j * N + k], & c_por_bt[i * N + j], N, block_size);
+    // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
+    for (i = 0; i < N; i += tam_bloque) {
+        for (j = 0; j < N; j += tam_bloque) {
+            for (k = 0; k < N; k += tam_bloque) {
+                multiplicar_bloque( & C[i * N + k], & B_T[j * N + k], & c_por_bt[i * N + j], N, tam_bloque);
             }
         }
     }
@@ -191,31 +244,34 @@ int main(int argc, char * argv[]) {
     }
 
     // Terminar de medir el tiempo e imprimirlo.
-    printf("Tiempo que llevó computar la ecuación con N = %d ---> %f.\n\n", N, dwalltime() - timetick);
+    printf("Tiempo que llevó computar la ecuación con N = %d y tamaño de bloque = %d ---> %f.\n\n", N, tam_bloque, dwalltime() - timetick);
 
-  	if (imprimir_matrices) {
+    chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
+
+    // Imprimir los resultados si N es chico.
+  	if (N <= 4) {
         printf("Matriz A×B:\n");
         imprimir_matriz_por_fila(a_por_b, N);
         printf("Matriz C×B_T:\n");
         imprimir_matriz_por_fila(c_por_bt, N);
         printf("Matriz R:\n");
         imprimir_matriz_por_fila(R, N);
+        printf("Valor máximo de A: %f\n", max_A);
+        printf("Valor máximo de B: %f\n", max_B);
+
+        printf("Valor mínimo de A: %f\n", min_A);
+        printf("Valor mínimo de B: %f\n", min_B);
+
+        printf("Promedio de A: %f\n", prom_A);
+        printf("Promedio de B: %f\n", prom_B);
+
+        printf("Cociente: %f\n", cociente);
     }
-
-    printf("Valor máximo de A: %f\n", maxA);
-    printf("Valor máximo de B: %f\n", maxB);
-
-    printf("Valor mínimo de A: %f\n", minA);
-    printf("Valor mínimo de B: %f\n", minB);
-
-    printf("Promedio de A: %f\n", promA);
-    printf("Promedio de B: %f\n", promB);
-
-    printf("Cociente: %f\n", cociente);
 
     // Liberar la memoria que alocamos a las matrices al inicio.
     free(A);
     free(B);
+    free(B_T);
     free(C);
     free(R);
     free(a_por_b);
