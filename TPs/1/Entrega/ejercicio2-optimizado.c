@@ -1,12 +1,33 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 void imprimir_matriz(double * A, int N) {
     for (int i = 0; i < N * N; i++) {
         printf("%.2f ", A[i]);
     }
     printf("\n\n");
+}
+
+void imprimir_matriz_por_fila(double *A, int N) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%.2f ", A[i * N + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+void imprimir_matriz_por_columna(double *A, int N) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%.2f ", A[j * N + i]);
+        }
+        printf("\n");
+    }
+    printf("\n");
 }
 
 double dwalltime() {
@@ -105,12 +126,12 @@ int main(int argc, char * argv[]) {
 
     // Imprimir las matrices.
   	if (imprimir_matrices) {
-        printf("Matriz A (ordenada por filas e inicializada como matriz identidad):\n");
-        imprimir_matriz(A, N);
-        printf("Matriz B (ordenada por columnas e inicializada de forma incremental):\n");
-        imprimir_matriz(B, N);
-        printf("Matriz C (ordenada por filas e inicializada como matriz identidad):\n");
-        imprimir_matriz(C, N);
+        printf("Matriz A (ordenada por filas e inicializada de forma incremental):\n");
+        imprimir_matriz_por_fila(A, N);
+        printf("Matriz B (ordenada por columnas e inicializada como matriz identidad):\n");
+        imprimir_matriz_por_columna(B, N);
+        printf("Matriz C (ordenada por filas e inicializada de forma incremental):\n");
+        imprimir_matriz_por_fila(C, N);
     }
 
     // Comenzar a medir el tiempo.
@@ -174,11 +195,11 @@ int main(int argc, char * argv[]) {
 
   	if (imprimir_matrices) {
         printf("Matriz A×B:\n");
-        imprimir_matriz(a_por_b, N);
+        imprimir_matriz_por_fila(a_por_b, N);
         printf("Matriz C×B_T:\n");
-        imprimir_matriz(c_por_bt, N);
+        imprimir_matriz_por_fila(c_por_bt, N);
         printf("Matriz R:\n");
-        imprimir_matriz(R, N);
+        imprimir_matriz_por_fila(R, N);
     }
 
     printf("Valor máximo de A: %f\n", maxA);
