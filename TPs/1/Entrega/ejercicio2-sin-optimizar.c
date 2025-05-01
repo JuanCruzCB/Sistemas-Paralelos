@@ -4,14 +4,14 @@
 
 #define EPSILON 1e-6
 
-int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
+int chequear_resultados(double * A, double * B, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
     int i, j;
 
     printf("Chequeando resultados...\n");
     // Chequear que A×B es correcto.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            if (a_por_b[i * N + j] != B[j * N + i]) {
+            if (a_por_b[i * N + j] != B[i * N + j]) {
                 printf("Error en la multiplicación A×B en la posición [%d][%d]\n", i, j);
                 return 1;
             }
@@ -22,7 +22,7 @@ int chequear_resultados(double * A, double * B, double * B_T, double * C, double
     // Chequear que C×B_T es correcto.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            if (c_por_bt[i * N + j] != B_T[j * N + i]) {
+            if (c_por_bt[i * N + j] != B[j * N + i]) {
                 printf("Error en la multiplicación C×B_T en la posición [%d][%d]\n", i, j);
                 return 1;
             }
@@ -101,7 +101,7 @@ int main(int argc, char * argv[]) {
     int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
 
     /* MATRICES */
-    double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;   // Matrices A, B, B transpuesta, C, R, A×B, C×B_T.
+    double * A, * B, * C, * R, * a_por_b, * c_por_bt;   // Matrices A, B, B transpuesta, C, R, A×B, C×B_T.
     int i, j; 						// Índices para recorrer las matrices → i para fila; j para columna.
     double acumulador = 1.0;            // Acumulador para los valores de la matriz B.
     double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
@@ -131,7 +131,6 @@ int main(int argc, char * argv[]) {
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     A = (double * ) malloc(N * N * sizeof(double));
     B = (double * ) malloc(N * N * sizeof(double));
-    B_T = (double * ) malloc(N * N * sizeof(double));
     C = (double * ) malloc(N * N * sizeof(double));
     a_por_b = (double * ) malloc(N * N * sizeof(double));
     c_por_bt = (double * ) malloc(N * N * sizeof(double));
@@ -149,7 +148,7 @@ int main(int argc, char * argv[]) {
                 C[i * N + j] = 0.0;
             }
 
-            B[j * N + i] = acumulador;
+            B[i * N + j] = acumulador;
             R[i * N + j] = 0.0;
             a_por_b[i * N + j] = 0.0;
             c_por_bt[i * N + j] = 0.0;
@@ -162,18 +161,14 @@ int main(int argc, char * argv[]) {
   	if (N <= 4) {
         printf("Matriz A (ordenada por filas e inicializada como matriz identidad):\n");
         imprimir_matriz_por_fila(A, N);
-        printf("Matriz B (ordenada por columnas e inicializada de forma incremental):\n");
-        imprimir_matriz_por_columna(B, N);
+        printf("Matriz B (ordenada por filas e inicializada de forma incremental):\n");
+        imprimir_matriz_por_fila(B, N);
         printf("Matriz C (ordenada por filas e inicializada como matriz identidad):\n");
         imprimir_matriz_por_fila(C, N);
     }
 
     // Comenzar a medir el tiempo.
     timetick = dwalltime();
-
-    // Inicializar la matriz B_T (B transpuesta).
-    for(i = 0; i < N ; i++)
-        for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
 
     // Calcular el valor máximo, mínimo y promedio de la matriz A.
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
@@ -198,8 +193,8 @@ int main(int argc, char * argv[]) {
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
-                a_por_b[i * N + j] += A[i * N + k] * B[j * N + k];
-                c_por_bt[i * N + j] += C[i * N + k] * B_T[j * N + k];
+                a_por_b[i * N + j] += A[i * N + k] * B[k * N + j];
+                c_por_bt[i * N + j] += C[i * N + k] * B[j * N + k];
             }
         }
     }
@@ -214,7 +209,7 @@ int main(int argc, char * argv[]) {
     // Terminar de medir el tiempo e imprimirlo.
     printf("Tiempo que llevó computar la ecuación con N = %d ---> %f.\n\n", N, dwalltime() - timetick);
 
-    chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
+    chequear_resultados(A, B, C, R, a_por_b, c_por_bt, N, cociente);
 
     // Imprimir los resultados si N es chico.
   	if (N <= 4) {
@@ -239,7 +234,6 @@ int main(int argc, char * argv[]) {
     // Liberar la memoria que alocamos a las matrices al inicio.
     free(A);
     free(B);
-    free(B_T);
     free(C);
     free(R);
     free(a_por_b);
