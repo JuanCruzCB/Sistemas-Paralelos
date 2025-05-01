@@ -1,10 +1,10 @@
-all: programa
+all: opt no_opt
 
-programa: ejercicio2-optimizado.c
-	gcc -O3 -Wall -o tp1 ejercicio2-optimizado.c
+opt: ejercicio2-optimizado.c
+	gcc -O3 -Wall -o optimizada ejercicio2-optimizado.c
 
-run: programa
-	./tp1 4 2 1
+no_opt: ejercicio2-sin-optimizar.c
+	gcc -O3 -Wall -o no_optimizada ejercicio2-sin-optimizar.c
 
 clean:
-	rm -f tp1
+	rm -f optimizada no_optimizada
