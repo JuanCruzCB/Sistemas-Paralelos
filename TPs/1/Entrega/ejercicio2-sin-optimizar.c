@@ -44,7 +44,7 @@ int chequear_resultados(double * A, double * B, double * C, double * R, double *
     // Chequear que Cociente × [A×B] es correcto.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            if (a_por_b[i * N + j] * cociente != B[j * N + i] * cociente) {
+            if (a_por_b[i * N + j] * cociente != B[i * N + j] * cociente) {
                 printf("Error en la multiplicación Cociente × [A×B] en la posición [%d][%d]\n", i, j);
                 return 1;
             }
