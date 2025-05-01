@@ -142,8 +142,8 @@ int main(int argc, char * argv[]) {
         (tam_bloque > N) ||
         (N % tam_bloque != 0)
     ) {
-        printf("\nSe deben enviar 3 parámetros:\n");
-        printf("El N de la dimensión de las matrices, el tamaño del bloque.\n");
+        printf("\nSe deben enviar 2 parámetros:\n");
+        printf("El N de la dimensión de las matrices y el tamaño de bloque.\n");
         printf("Ejemplo con N = 16 y tamaño de bloque = 4: \n ./programa 16 4\n");
         exit(1);
     }
@@ -180,11 +180,11 @@ int main(int argc, char * argv[]) {
 
     // Imprimir las matrices si N es chico.
   	if (N <= 4) {
-        printf("Matriz A (ordenada por filas e inicializada de forma incremental):\n");
+        printf("Matriz A (ordenada por filas e inicializada como matriz identidad):\n");
         imprimir_matriz_por_fila(A, N);
-        printf("Matriz B (ordenada por columnas e inicializada como matriz identidad):\n");
+        printf("Matriz B (ordenada por columnas e inicializada de forma incremental):\n");
         imprimir_matriz_por_columna(B, N);
-        printf("Matriz C (ordenada por filas e inicializada de forma incremental):\n");
+        printf("Matriz C (ordenada por filas e inicializada como matriz identidad):\n");
         imprimir_matriz_por_fila(C, N);
     }
 
