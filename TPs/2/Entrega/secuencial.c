@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define EPSILON 1e-6
+#define TAM_BLOQUE 128
 
 int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
     int i, j;
@@ -95,13 +96,13 @@ double dwalltime() {
     return sec;
 }
 
-void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int tam_bloque) {
+void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n) {
     int i, j, k;
 
-    for (i = 0; i < tam_bloque; i++) {
-        for (j = 0; j < tam_bloque; j++) {
+    for (i = 0; i < TAM_BLOQUE; i++) {
+        for (j = 0; j < TAM_BLOQUE; j++) {
             double aux = 0.0;
-            for (k = 0; k < tam_bloque; k++) {
+            for (k = 0; k < TAM_BLOQUE; k++) {
                 aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
             }
             bloque_resultado[i * n + j] += aux;
@@ -112,7 +113,6 @@ void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double 
 int main(int argc, char * argv[]) {
     /* ARGUMENTOS */
     int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
-    int tam_bloque = -1;                // Tamaño del bloque para la multiplicación por bloques.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;   // Matrices A, B, B transpuesta, C, R, A×B, C×B_T.
@@ -121,14 +121,14 @@ int main(int argc, char * argv[]) {
     double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
 
     /* MÍNIMO, MÁXIMO, PROMEDIO */
-    double max_A = -1.0;					// Valor máximo de la matriz A.
-    double max_B = -1.0;					// Valor máximo de la matriz B.
+    double max_A = -1.0;				// Valor máximo de la matriz A.
+    double max_B = -1.0;				// Valor máximo de la matriz B.
     double min_A = 999.0;				// Valor mínimo de la matriz A.
     double min_B = 999.0;				// Valor mínimo de la matriz B.
-    double prom_A = 0.0;					// Valor promedio de la matriz A.
-    double prom_B = 0.0;					// Valor promedio de la matriz B.
-    double suma_A = 0.0;					// Acumulador de los valores de la matriz A.
-    double suma_B = 0.0;					// Acumulador de los valores de la matriz B.
+    double prom_A = 0.0;				// Valor promedio de la matriz A.
+    double prom_B = 0.0;				// Valor promedio de la matriz B.
+    double suma_A = 0.0;				// Acumulador de los valores de la matriz A.
+    double suma_B = 0.0;				// Acumulador de los valores de la matriz B.
     double celda_A = 0.0;				// Celda temporal de la matriz A.
     double celda_B = 0.0;				// Celda temporal de la matriz B.
 
@@ -136,15 +136,13 @@ int main(int argc, char * argv[]) {
 
     // Se debe enviar el N y el tamaño de bloque como argumento. Si no se envía, alertar y terminar.
     if (
-        (argc != 3) ||
+        (argc != 2) ||
         ((N = atoi(argv[1])) <= 0) ||
-        ((tam_bloque = atoi(argv[2])) <= 0) ||
-        (tam_bloque > N) ||
-        (N % tam_bloque != 0)
+        (N % TAM_BLOQUE != 0)
     ) {
-        printf("\nSe deben enviar 2 parámetros:\n");
-        printf("El N de la dimensión de las matrices y el tamaño de bloque.\n");
-        printf("Ejemplo con N = 16 y tamaño de bloque = 4: \n ./programa 16 4\n");
+        printf("\nSe deben enviar un parámetro:\n");
+        printf("El N de la dimensión de las matrices.\n");
+        printf("Ejemplo con N = 512: \n ./programa 512\n");
         exit(1);
     }
 
@@ -220,19 +218,19 @@ int main(int argc, char * argv[]) {
     cociente = ((max_A * max_B) - (min_A * min_B)) / (prom_A * prom_B);
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
-    for (i = 0; i < N; i += tam_bloque) {
-        for (j = 0; j < N; j += tam_bloque) {
-            for (k = 0; k < N; k += tam_bloque) {
-                multiplicar_bloque( & A[i * N + k], & B[j * N + k], & a_por_b[i * N + j], N, tam_bloque);
+    for (i = 0; i < N; i += TAM_BLOQUE) {
+        for (j = 0; j < N; j += TAM_BLOQUE) {
+            for (k = 0; k < N; k += TAM_BLOQUE) {
+                multiplicar_bloque( & A[i * N + k], & B[j * N + k], & a_por_b[i * N + j], N);
             }
         }
     }
 
     // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
-    for (i = 0; i < N; i += tam_bloque) {
-        for (j = 0; j < N; j += tam_bloque) {
-            for (k = 0; k < N; k += tam_bloque) {
-                multiplicar_bloque( & C[i * N + k], & B_T[j * N + k], & c_por_bt[i * N + j], N, tam_bloque);
+    for (i = 0; i < N; i += TAM_BLOQUE) {
+        for (j = 0; j < N; j += TAM_BLOQUE) {
+            for (k = 0; k < N; k += TAM_BLOQUE) {
+                multiplicar_bloque( & C[i * N + k], & B_T[j * N + k], & c_por_bt[i * N + j], N);
             }
         }
     }
@@ -245,7 +243,7 @@ int main(int argc, char * argv[]) {
     }
 
     // Terminar de medir el tiempo e imprimirlo.
-    printf("Tiempo que llevó computar la ecuación con N = %d y tamaño de bloque = %d ---> %f.\n\n", N, tam_bloque, dwalltime() - timetick);
+    printf("Tiempo que llevó computar la ecuación con N = %d y tamaño de bloque = %d ---> %f.\n\n", N, TAM_BLOQUE, dwalltime() - timetick);
 
     chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
 
