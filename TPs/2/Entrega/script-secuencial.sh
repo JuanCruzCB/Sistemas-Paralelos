@@ -4,4 +4,4 @@
 #SBATCH --partition=Blade
 #SBATCH -o secuencial/output_N_?.txt
 #SBATCH -e secuencial/errors_N_?.txt
-./secuencial $1
+./sec $1

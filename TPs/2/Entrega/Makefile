@@ -1,13 +1,13 @@
 all: secuencial pthreads openmp
 
 secuencial:
-	gcc -O3 -Wall -o secuencial secuencial.c
+	gcc -O3 -Wall -o sec secuencial.c
 
 pthreads:
-	gcc -O3 -Wall -pthread -o pthreads pthreads.c
+	gcc -O3 -Wall -pthread -o pth pthreads.c
 
 openmp:
-	gcc -O3 -Wall -fopenmp -o openmp openmp.c
+	gcc -O3 -Wall -fopenmp -o open openmp.c
 
 clean:
-	rm -f secuencial pthreads openmp
+	rm -f sec pth open

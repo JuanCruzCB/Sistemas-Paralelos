@@ -4,4 +4,4 @@
 #SBATCH --partition=Blade
 #SBATCH -o openmp/output_N_?_T_?.txt
 #SBATCH -e openmp/errors_N_?_T_?.txt
-./openmp $1 $2
+./open $1 $2
