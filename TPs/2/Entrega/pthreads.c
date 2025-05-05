@@ -24,7 +24,7 @@ double suma_A = 0.0;					    // Acumulador de los valores de la matriz A.
 double suma_B = 0.0;				        // Acumulador de los valores de la matriz B.
 
 pthread_barrier_t barrier[2];
-sem_t mutexA, mutexB;
+sem_t semA, semB;
 
 /* VARIABLES GLOBALES */
 
@@ -89,18 +89,22 @@ void * computo_general(void * ptr) {
     }
 
     // Actualizar variables globales con exclusión mutua.
-    sem_wait(&mutexA);
+    sem_wait(&semA);
     suma_A += suma_local_A;
     if (max_local_A > max_A) max_A = max_local_A;
     if (min_local_A < min_A) min_A = min_local_A;
-    sem_post(&mutexA);
+    sem_post(&semA);
 
-    sem_wait(&mutexB);
+    sem_wait(&semB);
     suma_B += suma_local_B;
     if (max_local_B > max_B) max_B = max_local_B;
     if (min_local_B < min_B) min_B = min_local_B;
-    sem_post(&mutexB);
+    sem_post(&semB);
 
+    // Barrera 1
+    pthread_barrier_wait(&barrier[0]);
+    prom_A = suma_A / (N * N);
+    prom_B = suma_B / (N * N);
     cociente = (max_A * max_B - min_A * min_B) / (prom_A * prom_B);
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
@@ -129,8 +133,8 @@ void * computo_general(void * ptr) {
         }
     }
 
-    // BARRERA 1
-    pthread_barrier_wait(&barrier[0]);
+    // Barrera 2
+    pthread_barrier_wait(&barrier[1]);
 
     // Finalmente multiplicar la matriz auxiliar a_por_b por cociente y sumarle a eso la matriz c_por_bt.
     for (i = inicio; i < fin; i++) {
@@ -182,7 +186,7 @@ int main(int argc, char * argv[]) {
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
-            if(i == j) {
+            if (i == j) {
                 A[i * N + j] = 1.0;
                 C[i * N + j] = 1.0;
             }
@@ -213,8 +217,8 @@ int main(int argc, char * argv[]) {
     // Inicializaciones de Threading
     int ids[cantidad_hilos];
 
-    sem_init(&mutexA, 0, 1);
-    sem_init(&mutexB, 0, 1);
+    sem_init(&semA, 0, 1);
+    sem_init(&semB, 0, 1);
 
     pthread_barrier_init(&barrier[0], NULL, cantidad_hilos);
     pthread_barrier_init(&barrier[1], NULL, cantidad_hilos);
@@ -224,7 +228,7 @@ int main(int argc, char * argv[]) {
     // Comenzar a medir el tiempo.
     timetick = dwalltime();
 
-    for(i = 0; i < cantidad_hilos; i++) {
+    for (i = 0; i < cantidad_hilos; i++) {
         ids[i] = i;
         pthread_create(&threads[i], NULL, computo_general, &ids[i]);
     }
