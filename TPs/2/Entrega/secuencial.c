@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "utils.h"
 
-#define EPSILON 1e-6
 #define TAM_BLOQUE 128
 
 double dwalltime() {

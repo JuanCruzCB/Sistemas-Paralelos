@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <stdio.h>
 
 int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
     int i, j;
