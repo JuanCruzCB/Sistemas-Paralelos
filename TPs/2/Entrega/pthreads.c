@@ -103,9 +103,12 @@ void * computo_general(void * ptr) {
 
     // Barrera 1.
     pthread_barrier_wait(&barrier[0]);
-    prom_A = suma_A / (N * N);
-    prom_B = suma_B / (N * N);
-    cociente = (max_A * max_B - min_A * min_B) / (prom_A * prom_B);
+
+    if (id == 0) {
+        prom_A = suma_A / (N * N);
+        prom_B = suma_B / (N * N);
+        cociente = (max_A * max_B - min_A * min_B) / (prom_A * prom_B);
+    }
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
     for (i = inicio; i < fin; i += TAM_BLOQUE) {
