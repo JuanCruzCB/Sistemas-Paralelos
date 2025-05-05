@@ -108,26 +108,26 @@ void * computo_general(void * ptr) {
     cociente = (max_A * max_B - min_A * min_B) / (prom_A * prom_B);
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
-    for (i = inicio; i < fin; i++) {
-        for (j = 0; j < N; j++) {
-            for (k = 0; k < N; k++) {
+    for (i = inicio; i < fin; i += TAM_BLOQUE) {
+        for (j = 0; j < N; j += TAM_BLOQUE) {
+            for (k = 0; k < N; k += TAM_BLOQUE) {
                 multiplicar_bloque(
-                    &A[(i * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &B[(j * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &a_por_b[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE]
+                    &A[i * N + k],
+                    &B[j * N + k],
+                    &a_por_b[i * N + j]
                 );
             }
         }
     }
 
     // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
-    for (i = inicio; i < fin; i++) {
-        for (j = 0; j < N; j++) {
-            for (k = 0; k < N; k++) {
+    for (i = inicio; i < fin; i += TAM_BLOQUE) {
+        for (j = 0; j < N; j += TAM_BLOQUE) {
+            for (k = 0; k < N; k += TAM_BLOQUE) {
                 multiplicar_bloque(
-                    &C[(i * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &B_T[(j * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &c_por_bt[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE]
+                    &C[i * N + k],
+                    &B_T[j * N + k],
+                    &c_por_bt[i * N + j]
                 );
             }
         }
