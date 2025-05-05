@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "utils.h"
+#include <semaphore.h>
 
 #define EPSILON 1e-6
 #define TAM_BLOQUE 128
@@ -26,6 +27,20 @@ pthread_barrier_t barrier[2];
 sem_t mutexA, mutexB;
 
 /* VARIABLES GLOBALES */
+
+void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado) {
+    int i, j, k;
+
+    for (i = 0; i < TAM_BLOQUE; i++) {
+        for (j = 0; j < TAM_BLOQUE; j++) {
+            double aux = 0.0;
+            for (k = 0; k < TAM_BLOQUE; k++) {
+                aux += primer_bloque[i * N + k] * segundo_bloque[j * N + k];
+            }
+            bloque_resultado[i * N + j] += aux;
+        }
+    }
+}
 
 void * computo_general(void * ptr) {
     int id = * (int *) ptr;
@@ -56,35 +71,35 @@ void * computo_general(void * ptr) {
     // Calcular el valor máximo, mínimo y promedio de la matriz A.
     for (i = inicio; i < fin; i++) {
         for (j = 0; j < N; j++) {
-            double celda_A = A[i * N + j];
-            local_suma_A += celda_A;
-            if (celda_A > local_max_A) local_max_A = celda_A;
-            if (celda_A < local_min_A) local_min_A = celda_A;
+            celda_A = A[i * N + j];
+            suma_local_A += celda_A;
+            if (celda_A > max_local_A) max_local_A = celda_A;
+            if (celda_A < min_local_A) min_local_A = celda_A;
         }
     }
 
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
     for (i = inicio; i < fin; i++) {
         for (j = 0; j < N; j++) {
-            double celda_B = B[i * N + j];
-            local_suma_B += celda_B;
-            if (celda_B > local_max_B) local_max_B = celda_B;
-            if (celda_B < local_min_B) local_min_B = celda_B;
+            celda_B = B[i * N + j];
+            suma_local_B += celda_B;
+            if (celda_B > max_local_B) max_local_B = celda_B;
+            if (celda_B < min_local_B) min_local_B = celda_B;
         }
     }
 
     // Actualizar variables globales con exclusión mutua.
-    pthread_mutex_lock(&mutexA);
-    suma_A += local_suma_A;
-    if (local_max_A > max_A) max_A = local_max_A;
-    if (local_min_A < min_A) min_A = local_min_A;
-    pthread_mutex_unlock(&mutexA);
+    sem_wait(&mutexA);
+    suma_A += suma_local_A;
+    if (max_local_A > max_A) max_A = max_local_A;
+    if (min_local_A < min_A) min_A = min_local_A;
+    sem_post(&mutexA);
 
-    pthread_mutex_lock(&mutexB);
-    suma_B += local_suma_B;
-    if (local_max_B > max_B) max_B = local_max_B;
-    if (local_min_B < min_B) min_B = local_min_B;
-    pthread_mutex_unlock(&mutexB);
+    sem_wait(&mutexB);
+    suma_B += suma_local_B;
+    if (max_local_B > max_B) max_B = max_local_B;
+    if (min_local_B < min_B) min_B = min_local_B;
+    sem_post(&mutexB);
 
     cociente = (max_A * max_B - min_A * min_B) / (prom_A * prom_B);
 
@@ -95,7 +110,7 @@ void * computo_general(void * ptr) {
                 multiplicar_bloque(
                     &A[(i * TAM_BLOQUE) * N + k * TAM_BLOQUE],
                     &B[(j * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &a_por_b[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE],
+                    &a_por_b[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE]
                 );
             }
         }
@@ -108,7 +123,7 @@ void * computo_general(void * ptr) {
                 multiplicar_bloque(
                     &C[(i * TAM_BLOQUE) * N + k * TAM_BLOQUE],
                     &B_T[(j * TAM_BLOQUE) * N + k * TAM_BLOQUE],
-                    &c_por_bt[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE],
+                    &c_por_bt[(i * TAM_BLOQUE) * N + j + TAM_BLOQUE]
                 );
             }
         }
@@ -127,61 +142,6 @@ void * computo_general(void * ptr) {
     pthread_exit(0);
 }
 
-void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado) {
-    int i, j, k;
-
-    for (i = 0; i < TAM_BLOQUE; i++) {
-        for (j = 0; j < TAM_BLOQUE; j++) {
-            double aux = 0.0;
-            for (k = 0; k < TAM_BLOQUE; k++) {
-                aux += primer_bloque[i * N + k] * segundo_bloque[j * N + k];
-            }
-            bloque_resultado[i * N + j] += aux;
-        }
-    }
-}
-
-/* Calcula el producto entre una matriz y un escalar */
-void producto_escalar(double *matriz, double cociente, int id) {
-    int start, end;
-    int length = (N * N) / cantidad_hilos;
-    start = id * length;
-    end = (id != cantidad_hilos-1) ? start + length : (N * N);
-
-    for (int i = start; i < end; i++) {
-        matriz[i] = product_AB[i] * cociente;
-    }
-}
-
-void transpose_matrix(double * matriz, double * matriz_T, int BS, int id) {
-    // Dividir el trabajo por filas entre los hilos
-    int rows_per_thread = N / cantidad_hilos;
-    int start_row = id * rows_per_thread;
-    int end_row = (id != cantidad_hilos-1) ? start_row + rows_per_thread : N;
-
-    // Transposición por filas
-    for (int i = start_row; i < end_row; i++) {
-        for (int j = 0; j < N; j++) {
-            matriz_T[j * N + i] = matriz[i * N + j];
-        }
-    }
-}
-
-/* Calcula la suma entre dos matrices */
-void suma_matrices(double * a, double * b, double * c, int BS, int id) {
-    // Dividir el trabajo por filas entre hilos
-    int rows_per_thread = N / cantidad_hilos;
-    int start_row = id * rows_per_thread;
-    int end_row = (id != cantidad_hilos-1) ? start_row + rows_per_thread : N;
-
-    // Sumar por bloques
-    for (int i = start_row; i < end_row; i++) {
-        for (int j = 0; j < N; j++) {
-            c[i * N + j] = a[i * N + j] + b[i * N + j];
-        }
-    }
-}
-
 double dwalltime() {
     double sec;
     struct timeval tv;
@@ -190,26 +150,10 @@ double dwalltime() {
     return sec;
 }
 
-// BORRAR DESPUÉS
-void multiplicar_bloquee(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n) {
-    int i, j, k;
-
-    for (i = 0; i < TAM_BLOQUE; i++) {
-        for (j = 0; j < TAM_BLOQUE; j++) {
-            double aux = 0.0;
-            for (k = 0; k < TAM_BLOQUE; k++) {
-                aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
-            }
-            bloque_resultado[i * n + j] += aux;
-        }
-    }
-}
-
 int main(int argc, char * argv[]) {
-    int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
-    int i, j, k; 						// Índices para recorrer las matrices → i para fila; j para columna.
+    int i, j; 						              // Índices para recorrer las matrices → i para fila; j para columna.
     double acumulador = 1.0;            // Acumulador para los valores de la matriz B.
-    double timetick; 					// Se usa para medir el tiempo.
+    double timetick; 					          // Se usa para medir el tiempo.
 
     // Se debe enviar el N y la cantidad de hilos como argumento. Si no se envía, alertar y terminar.
     if (
@@ -280,7 +224,7 @@ int main(int argc, char * argv[]) {
     // Comenzar a medir el tiempo.
     timetick = dwalltime();
 
-    for(i = 0; i < cantidad_hilos ; i++) {
+    for(i = 0; i < cantidad_hilos; i++) {
         ids[i] = i;
         pthread_create(&threads[i], NULL, computo_general, &ids[i]);
     }
