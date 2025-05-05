@@ -101,7 +101,7 @@ void * computo_general(void * ptr) {
     if (min_local_B < min_B) min_B = min_local_B;
     sem_post(&semB);
 
-    // Barrera 1
+    // Barrera 1.
     pthread_barrier_wait(&barrier[0]);
     prom_A = suma_A / (N * N);
     prom_B = suma_B / (N * N);
@@ -133,7 +133,7 @@ void * computo_general(void * ptr) {
         }
     }
 
-    // Barrera 2
+    // Barrera 2.
     pthread_barrier_wait(&barrier[1]);
 
     // Finalmente multiplicar la matriz auxiliar a_por_b por cociente y sumarle a eso la matriz c_por_bt.
@@ -204,16 +204,6 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    // Imprimir las matrices si N es chico.
-  	if (N <= 4) {
-        printf("Matriz A (ordenada por filas e inicializada como matriz identidad):\n");
-        imprimir_matriz_por_fila(A, N);
-        printf("Matriz B (ordenada por columnas e inicializada de forma incremental):\n");
-        imprimir_matriz_por_columna(B, N);
-        printf("Matriz C (ordenada por filas e inicializada como matriz identidad):\n");
-        imprimir_matriz_por_fila(C, N);
-    }
-
     // Inicializaciones de Threading
     int ids[cantidad_hilos];
 
@@ -241,26 +231,6 @@ int main(int argc, char * argv[]) {
     printf("Tiempo que llevó computar la ecuación con N = %d, tamaño de bloque = %d, cantidad de hilos = %d ---> %f.\n\n", N, TAM_BLOQUE, cantidad_hilos, dwalltime() - timetick);
 
     chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
-
-    // Imprimir los resultados si N es chico.
-  	if (N <= 4) {
-        printf("Matriz A×B:\n");
-        imprimir_matriz_por_fila(a_por_b, N);
-        printf("Matriz C×B_T:\n");
-        imprimir_matriz_por_fila(c_por_bt, N);
-        printf("Matriz R:\n");
-        imprimir_matriz_por_fila(R, N);
-        printf("Valor máximo de A: %f\n", max_A);
-        printf("Valor máximo de B: %f\n", max_B);
-
-        printf("Valor mínimo de A: %f\n", min_A);
-        printf("Valor mínimo de B: %f\n", min_B);
-
-        printf("Promedio de A: %f\n", prom_A);
-        printf("Promedio de B: %f\n", prom_B);
-
-        printf("Cociente: %f\n", cociente);
-    }
 
     // Liberar la memoria que alocamos a las matrices al inicio.
     free(A);
