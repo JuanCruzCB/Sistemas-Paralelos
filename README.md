@@ -13,6 +13,13 @@
 - [Documento TP2](https://docs.google.com/document/d/1bxbW4ktR9I1k8O2KXF2efyOUTyFVjMSDtIdsOsV2LnM/edit?usp=sharing)
 - Contacto: sparalelos@lidi.info.unlp.edu.ar
 
+### Cluster
+
+- Conectarse al cluster: `ssh paralelos`
+- Copiar archivos al cluster: `scp archivo paralelos:/nethome/spusuario15/`
+- Darle permisos de ejecución al script: `chmod +x script.sh`
+- Ejecutar la aplicación: `sbatch ./script.sh arg1 arg2`
+
 ## Cómo se aprueba la cursada?
 
 - Se debe aprobar la entrega de 3 trabajos prácticos y su posterior **coloquio obligatorio**.
