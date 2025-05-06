@@ -5,8 +5,6 @@
 #include "utils.h"
 #include <semaphore.h>
 
-#define EPSILON 1e-6
-
 /* VARIABLES GLOBALES */
 
 double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
