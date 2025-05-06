@@ -6,13 +6,13 @@
 #include <semaphore.h>
 
 #define EPSILON 1e-6
-#define TAM_BLOQUE 128
 
 /* VARIABLES GLOBALES */
 
 double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
 int N, cantidad_hilos;                      // Tamaño de las matrices y cantidad de hilos a crear.
 double cociente = 0;                        // Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
+int TAM_BLOQUE = 128;                       // Tamaño del bloque para la multiplicación de matrices.
 
 double max_A = -1.0;					    // Valor máximo de la matriz A.
 double max_B = -1.0;					    // Valor máximo de la matriz B.
@@ -175,6 +175,11 @@ int main(int argc, char * argv[]) {
         printf("El N de la dimensión de las matrices y la cantidad de hilos.\n");
         printf("Ejemplo con N = 512 y 4 hilos: \n ./programa 512 4\n");
         exit(1);
+    }
+
+    // Ajustar el tamaño de bloque si la porción que le corresponde a cada hilo es menor que el tamaño de bloque.
+    if (N / cantidad_hilos < TAM_BLOQUE) {
+        TAM_BLOQUE = N / cantidad_hilos;
     }
 
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
