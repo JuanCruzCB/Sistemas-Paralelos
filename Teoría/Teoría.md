@@ -2040,6 +2040,30 @@ MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 <h1 align="center">Clase 8 - 2 de mayo, 2025</h1>
 
+## Programación en modelo híbrido
+
+### Fundamentos del modelo
+
+### Razones para usar el modelo
+
+### Razones para no usar el modelo
+
+### Esquemas
+
+#### Sin solapamiento de cómputo y comunicaciones
+
+#### Con solapamiento de cómputo y comunicaciones
+
+### Soporte MPI para programación híbrida
+
+### Ejemplo: Reducción a suma en cluster de multicores
+
+#### Usando MPI
+
+#### Usando híbrido
+
+#### Comparación
+
 ---
 
 <h1 align="center">Clase 9 - 9 de mayo, 2025</h1>
