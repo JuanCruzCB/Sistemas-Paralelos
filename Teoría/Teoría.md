@@ -2038,7 +2038,7 @@ MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 ---
 
-<h1 align="center">Clase 8 - 2 de mayo, 2025</h1>
+<h1 align="center">Clase 8 - 9 de mayo, 2025</h1>
 
 ## Programación en modelo híbrido
 
@@ -2066,6 +2066,8 @@ MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 ---
 
-<h1 align="center">Clase 9 - 9 de mayo, 2025</h1>
+<h1 align="center">Clase 9 - 16 de mayo, 2025</h1>
+
+## Tendencias
 
 ---
