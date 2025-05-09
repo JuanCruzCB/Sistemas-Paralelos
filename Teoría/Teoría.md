@@ -2044,25 +2044,86 @@ MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 ### Fundamentos del modelo
 
+- Procesadores multicore + clusters tradicionales = clusters de multicores.
+- Estos "nuevos" clusters son arquitecturas híbridas y jerárquicas de dos niveles.
+- Estas arquitecturas requieren modelos de comunicación híbridos, es decir comunicarse tanto vía pasaje de mensajes como vía memoria compartida, ya que usar solo uno de ellos no se adaptaría bien.
+- Idea básica:
+  - Tareas en un mismo nodo se comunican vía memoria compartida.
+  - Tareas en nodos distintos se comunican vía pasaje de mensajes.
+  - Combinar Pthreads/OpenMP con MPI.
+
 ### Razones para usar el modelo
 
+1. Al usar MC dentro de cada nodo:
+   1. Se reduce el overhead de comunicaciones MPI.
+   2. Se reducen los requerimientos de memoria de la aplicación.
+2. Algunas aplicaciones presentan dos niveles de paralelismo:
+   1. De grano grueso -> MPI.
+   2. De grano fino -> OpenMP.
+   3. El modelo híbrido explota ambos tipos de granularidad.
+3. Carga de trabajo desbalanceada a nivel de MPI:
+   1.
+
+...
+
 ### Razones para no usar el modelo
+
+1. Algunas aplicaciones presentan un solo nivel de paralelismo, por ende el paralelismo jerárquico no provee beneficios y hace el código más complejo.
+2.
+
+...
 
 ### Esquemas
 
 #### Sin solapamiento de cómputo y comunicaciones
 
+- Menos complejo.
+- También conocido como master-only o modo vector.
+- Usa un proceso MPI por nodo y OpenMP o Pthreads en cada núcleo de ese nodo.
+- Las llamadas a las rutinas MPI son realizadas fuera de
+- ....
+- **Ventajas**:
+  - ...
+- **Desventajas**:
+  - ...
+
 #### Con solapamiento de cómputo y comunicaciones
+
+- Más complejo.
+- ...
+- **Ventajas**:
+  - ...
+- **Desventajas**:
+  - ...
 
 ### Soporte MPI para programación híbrida
 
+- Las librerías MPI varían en su soporte para las comunicaciones entre hilos.
+- MPI especifica 4 niveles diferentes:
+  - `MPI_THREAD_SINGLE` (Nivel 0): ...
+  - `MPI_THREAD_FUNNELED` (Nivel 1): ...
+  - `MPI_THREAD_SERIALIZED` (Nivel 2): ...
+  - `MPI_THREAD_MULTIPLE` (Nivel 3): ...
+- Si nuestro programa es híbrido, se debe reemplazar MPI_Init por MPI_Init_thread para procesos multi-hilados:
+  - ...
+
 ### Ejemplo: Reducción a suma en cluster de multicores
+
+#### Explicación del problema
+
+...
 
 #### Usando MPI
 
+...
+
 #### Usando híbrido
 
+...
+
 #### Comparación
+
+...
 
 ---
 
