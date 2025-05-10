@@ -2054,76 +2054,189 @@ MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
 ### Razones para usar el modelo
 
-1. Al usar MC dentro de cada nodo:
+1. **Al usar MC dentro de cada nodo**:
    1. Se reduce el overhead de comunicaciones MPI.
    2. Se reducen los requerimientos de memoria de la aplicación.
-2. Algunas aplicaciones presentan dos niveles de paralelismo:
-   1. De grano grueso -> MPI.
-   2. De grano fino -> OpenMP.
+2. **Algunas aplicaciones presentan dos niveles de paralelismo**:
+   1. De grano grueso → Se puede explotar con MPI.
+   2. De grano fino → Se puede explotar con OpenMP.
    3. El modelo híbrido explota ambos tipos de granularidad.
-3. Carga de trabajo desbalanceada a nivel de MPI:
-   1.
-
-...
+3. **Carga de trabajo desbalanceada a nivel de MPI**:
+   1. Balancear la carga en forma dinámica con OpenMP es más sencillo.
+4. Pthreads también es una opción aunque con costo de programación mayor.
 
 ### Razones para no usar el modelo
 
 1. Algunas aplicaciones presentan un solo nivel de paralelismo, por ende el paralelismo jerárquico no provee beneficios y hace el código más complejo.
-2.
-
-...
+2. Al introducir OpenMP o Pthreads a un código MPI existente también se están introduciendo sus desventajas:
+   1. Overhead adicional por la creación, sincronización y destrucción de hilos.
+   2. Dependencia en la calidad del compilador y del soporte en ejecución para OpenMP/Pthreads.
+   3. Cuestiones relacionadas al uso de MC, como ubicación de los datos en memoria y conflictos en el acceso a los mismos.
 
 ### Esquemas
 
+- Existen diferentes esquemas para paralelizar una aplicación usando el modelo híbrido.
+- La clasificación se hace teniendo en cuenta:
+  - Qué hilo/s envía/n mensajes entre los procesos MPI.
+  - En qué momento lo hace/n.
+
 #### Sin solapamiento de cómputo y comunicaciones
 
-- Menos complejo.
 - También conocido como master-only o modo vector.
-- Usa un proceso MPI por nodo y OpenMP o Pthreads en cada núcleo de ese nodo.
-- Las llamadas a las rutinas MPI son realizadas fuera de
-- ....
+- Usa un proceso MPI por nodo y OpenMP o Pthreads en cada núcleo de cada nodo.
+- Las llamadas a las rutinas MPI son realizadas **fuera de las regiones paralelas de OpenMP o del código de los hilos creados con Pthreads**, por lo que el código está muy bien delimitado y separado.
 - **Ventajas**:
-  - ...
+  - Menos complejo.
+  - No hay intercambio de mensajes dentro de cada nodo.
+  - La topología de los procesos MPI ya no es una cuestión relevante a la hora de optimizar el rendimiento de la aplicación.
 - **Desventajas**:
-  - ...
+  - Mientras el hilo master se comunica, el resto de los hilos está ocioso → overhead.
+  - Un único hilo probablemente no sea capaz de aprovechar todo el ancho de banda disponible de la red de comunicación.
 
 #### Con solapamiento de cómputo y comunicaciones
 
-- Más complejo.
-- ...
+- Consiste en permitir que **más de un hilo pueda comunicarse (MPI) en paralelo** a otros que realicen cómputo útil.
 - **Ventajas**:
-  - ...
+  - Se reduce el tiempo ocioso que los hilos podrían incurrir.
+  - Se aprovecha el ancho de banda de la red.
 - **Desventajas**:
-  - ...
+  - Más complejo.
+  - Se debe equilibrar la carga de trabajo entre los hilos que comunican y los que no.
 
 ### Soporte MPI para programación híbrida
 
 - Las librerías MPI varían en su soporte para las comunicaciones entre hilos.
 - MPI especifica 4 niveles diferentes:
-  - `MPI_THREAD_SINGLE` (Nivel 0): ...
-  - `MPI_THREAD_FUNNELED` (Nivel 1): ...
-  - `MPI_THREAD_SERIALIZED` (Nivel 2): ...
-  - `MPI_THREAD_MULTIPLE` (Nivel 3): ...
-- Si nuestro programa es híbrido, se debe reemplazar MPI_Init por MPI_Init_thread para procesos multi-hilados:
-  - ...
+  - `MPI_THREAD_SINGLE` (Nivel 0): No soporta hilos.
+  - `MPI_THREAD_FUNNELED` (Nivel 1): Los procesos pueden ser multi- hilados **pero todas las comunicaciones las realizará el hilo master**.
+  - `MPI_THREAD_SERIALIZED` (Nivel 2): Los procesos pueden ser multi-hilados y los diferentes hilos pueden ejecutar rutinas MPI pero sólo una a la vez; **los llamados a MPI no pueden ser realizados en simultáneo por 2 hilos**.
+  - `MPI_THREAD_MULTIPLE` (Nivel 3): Múltiples hilos pueden realizar múltiples comunicaciones a la vez, sin restricciones.
+- Si nuestro programa es híbrido, se debe reemplazar `MPI_Init` por `MPI_Init_thread` para procesos multi-hilados:
+  - `MPI_Init_thread(int *argc, char ***argv, int required, int *provided)`
 
 ### Ejemplo: Reducción a suma en cluster de multicores
 
 #### Explicación del problema
 
-...
+- Debemos desarrollar un algoritmo paralelo para computar la reducción a suma de un vector.
+- La arquitectura de soporte es un cluster de 2 nodos donde cada nodo tiene 2 procesadores quad-core.
+  - Por ende tenemos 8 núcleos por nodo.
+- Tenemos dos opciones para resolverlo de forma paralela:
+  - Un algoritmo que use solo MPI.
+  - Un algoritmo híbrido, que use MPI + Pthreads o MPI + OpenMP.
 
-#### Usando MPI
+#### Usando solo MPI
 
-...
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
 
-#### Usando híbrido
+#define MAX_SIZE 2000
+#define COORDINATOR 0
 
-...
+int main(int argc, char* argv[])
+{
+    int i, num_procs, rank, size, strip_size, local_sum = 0, sum = 0;
+    int array[MAX_SIZE];
+    MPI_Status status;
+
+    size = atoi(argv[1]);
+    size = (size < MAX_SIZE ? size : MAX_SIZE);
+
+    MPI_Init(&argc, &argv);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if (rank == COORDINATOR) {
+        for (i = 0; i < size; i++) {
+            array[i] = i + 1;
+        }
+    }
+
+    strip_size = size / num_procs;
+
+    MPI_Scatter(array, strip_size, MPI_INT, array, strip_size, MPI_INT, COORDINATOR, MPI_COMM_WORLD);
+
+    for (i = 0; i < strip_size; i++) {
+        local_sum += array[i];
+    }
+
+    MPI_Reduce(&local_sum, &sum, 1, MPI_INT, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+
+    MPI_Finalize();
+
+    if (rank == COORDINATOR) {
+        printf("Sum=%d\n", sum);
+    }
+    return 0;
+}
+```
+
+#### Usando híbrido (master-only)
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+#include <omp.h>
+
+#define MAX_SIZE 2000
+#define MAX_THREADS 100
+#define COORDINATOR 0
+
+int main(int argc, char* argv[])
+{
+    int i, num_procs, rank, size, strip_size, local_sum = 0, sum = 0, threads, provided;
+    int array[MAX_SIZE];
+
+    size = atoi(argv[1]);
+    size = (size < MAX_SIZE ? size : MAX_SIZE);
+
+    threads = atoi(argv[2]);
+    threads = (threads < MAX_THREADS ? threads : MAX_THREADS);
+
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if (rank == COORDINATOR) {
+        for (i = 0; i < size; i++) {
+            array[i] = i + 1;
+        }
+    }
+
+    strip_size = size / num_procs;
+
+    MPI_Scatter(array, strip_size, MPI_INT, array, strip_size, MPI_INT, COORDINATOR, MPI_COMM_WORLD);
+
+    #pragma omp parallel for num_threads(threads) reduction(+:local_sum) schedule(static)
+    for (i = 0; i < strip_size; i++) {
+        local_sum += array[i];
+    }
+
+    MPI_Reduce(&local_sum, &sum, 1, MPI_INT, MPI_SUM, COORDINATOR, MPI_COMM_WORLD);
+
+    MPI_Finalize();
+
+    if (rank == COORDINATOR) {
+        printf("Sum=%d\n", sum);
+    }
+    return 0;
+}
+```
 
 #### Comparación
 
-...
+- En la solución con MPI:
+  - Se generan 16 procesos, uno por cada núcleo de la arquitectura (tenemos 4 núcleos × 2 procesadores × 2 nodos).
+  - Como los datos a comunicar tienen el mismo tamaño, esto implica más mensajes comunicados pero más cortos.
+- En la solución híbrida:
+  - Se generan 2 procesos, uno por cada nodo, y 8 hilos por nodo, con un total de 16 hilos.
+  - Tenemos menos mensajes pero más grandes.
+  - Tiende a tener menor overhead por menor latencia (menos mensajes, menos uso de la red de interconexión que suele ser un cuello de botella).
 
 ---
 
