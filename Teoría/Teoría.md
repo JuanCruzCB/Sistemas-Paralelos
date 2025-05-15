@@ -2240,7 +2240,7 @@ int main(int argc, char* argv[])
 
 ---
 
-<h1 align="center">Clase 9 - 16 de mayo, 2025</h1>
+<h1 align="center">Clase 9 - 23 de mayo, 2025</h1>
 
 ## Tendencias
 
