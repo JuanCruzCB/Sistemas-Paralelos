@@ -22,7 +22,7 @@ int main(int argc, char * argv[]) {
 
     if (my_rank == 0) {
         // El proceso 0 inicia la cadena.
-        sprintf(message, "Hola mundo desde el proceso: %d", my_rank);
+        sprintf(message, "Hola mundo!");
         MPI_Send(message, strlen(message) + 1, MPI_CHAR, siguiente, TAG, MPI_COMM_WORLD);
         MPI_Recv(message, BUFSIZ, MPI_CHAR, anterior, TAG, MPI_COMM_WORLD, &status);
         printf("Proceso %d recibió de %d: %s\n", my_rank, anterior, message);
