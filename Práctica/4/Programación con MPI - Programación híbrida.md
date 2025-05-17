@@ -26,6 +26,15 @@
 
 ## 1. Revisar el código mpi-simple.c. Compile y ejecute el código. Modifíquelo para que los procesos se comuniquen en forma de anillo: el proceso i debe enviarle un mensaje al proceso i + 1 , a excepción del último que debe comunicarse con el 0.
 
+El código **mpi-simple.c** funciona así:
+
+- Cada proceso, excepto el maestro, envía (MPI_Send) un mensaje de saludo al proceso master, el cual está dentro del canal MPI_COMM_WORLD, indicando su rank (id).
+- El proceso maestro, que es el proceso cuyo rank es 0, recibe (MPI_Recv) los mensajes de todos los otros procesos haciendo un receive en el id del proceso, el cual está dentro del canal MPI_COMM_WORLD nuevamente.
+- Este proceso maestro, luego de recibir cada mensaje, lo imprime.
+- El tipo de comunicación es punto a punto y se comporta como bloqueante en este contexto.
+
+El código modificado con comunicación en forma de anillo se encuentra en la carpeta "Ejercicio 1".
+
 ## 2. Los códigos blocking.c y non-blocking.c siguen el patrón master-worker, donde los procesos worker le envían un mensaje de texto al master empleando operaciones de comunicación bloqueantes y no bloqueantes, respectivamente.
 
 ### Compile y ejecute ambos códigos usando P = {4, 8, 16} (no importa que el número de núcleos sea menor que la cantidad de procesos). ¿Cuál de los dos retorna antes el control?
