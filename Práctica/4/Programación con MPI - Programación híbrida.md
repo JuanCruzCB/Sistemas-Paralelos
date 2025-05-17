@@ -10,11 +10,11 @@
   - Impresión en pantalla (printf).
 - Las pruebas deben realizarse de forma aislada a la ejecución de otras aplicaciones. Se debe ejecutar desde consola, sin otras aplicaciones ejecutándose al mismo tiempo.
 - Además del algoritmo paralelo, debe implementar el algoritmo secuencial en el caso que corresponda.
-- Los ejercicios 4- 6 deben probarse en las siguientes modalidades:
+- Los ejercicios 4 - 6 deben probarse en las siguientes modalidades:
   1. Usando 1 único nodo con 1 proceso por núcleo.
   2. Usando 2 nodos con 1 proceso cada 2 núcleos.
   3. Usando 2 nodos con 1 proceso por núcleo.
-- Por ejemplo, si el cluster dispone de nodos quad-core, entonces debe generar 4 procesos para el caso i), 4 para el caso ii) y 8 para el caso iii).
+  - Por ejemplo, si el cluster dispone de nodos quad-core, entonces debe generar 4 procesos para el caso i), 4 para el caso ii) y 8 para el caso iii).
 - Para todos los ejercicios 4 - 7 se debe calcular el speedup y la eficiencia del algoritmo paralelo respecto al secuencial. Además, realice un análisis de escalabilidad y del overhead de las comunicaciones.
 
 ## Información útil para compilar y ejecutar:
