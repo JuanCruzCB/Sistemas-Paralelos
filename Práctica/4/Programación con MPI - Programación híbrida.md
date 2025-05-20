@@ -21,7 +21,7 @@
 
 - Para compilar con OpenMPI, abra una consola y use **mpicc** empleando la siguiente sintaxis: `mpicc archivofuente.c –o nombreBinario`
 - Para compilar con OpenMPI + OpenMP, abra una consola y use mpicc empleando la siguiente sintaxis: `mpicc archivofuente.c –o nombreBinario -fopenmp`
-- Para ejecutar un binario en una máquina local, emplee la siguiente sintaxis: `mpirun –np P nombreBinario arg1 arg2 ... argN` donde P representa el número de procesos a generar.
+- Para ejecutar un binario en una máquina local, emplee la siguiente sintaxis: `mpirun –np P ./nombreBinario arg1 arg2 ... argN` donde P representa el número de procesos a generar.
 - Para ejecutar en el cluster de la cátedra, siga las instrucciones detalladas en el instructivo.
 
 ## 1. Revisar el código mpi-simple.c. Compile y ejecute el código. Modifíquelo para que los procesos se comuniquen en forma de anillo: el proceso i debe enviarle un mensaje al proceso i + 1 , a excepción del último que debe comunicarse con el 0.
