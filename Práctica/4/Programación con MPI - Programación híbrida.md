@@ -33,11 +33,40 @@ El código **mpi-simple.c** funciona así:
 - Este proceso maestro, luego de recibir cada mensaje, lo imprime.
 - El tipo de comunicación es punto a punto y se comporta como bloqueante en este contexto.
 
+Compilo el programa con `mpicc -o ej1 mpi-simple.c`, lo ejecuto con `mpirun -np 2 ./ej1` y veo el siguiente output:
+
+
+```
+Mensajes recibido por el proceso 0 (master):
+Mensaje recibido: Hola Mundo! Soy el proceso 1!
+```
+
 El código modificado con comunicación en forma de anillo se encuentra en la carpeta "Ejercicio 1".
 
 ## 2. Los códigos blocking.c y non-blocking.c siguen el patrón master-worker, donde los procesos worker le envían un mensaje de texto al master empleando operaciones de comunicación bloqueantes y no bloqueantes, respectivamente.
 
 ### Compile y ejecute ambos códigos usando P = {4, 8, 16} (no importa que el número de núcleos sea menor que la cantidad de procesos). ¿Cuál de los dos retorna antes el control?
+
+- Compilo con: `mpicc -o blocking blocking.c`; `mpicc -o non-blocking non-blocking.c`
+- Ejecuto con `mpirun --oversubscribe -np P ./programa`, uso --oversubscribe porque P > cantidad de cores.
+- Resultados de ejecución blocking:
+  - P = 4:
+  ```
+  Tiempo transcurrido 0.000002 (s):	proceso 0, llamando a MPI_Recv() [bloqueante] (fuente rank 1)
+  Tiempo transcurrido 2.000301 (s):	proceso 0, MPI_Recv() devolvio control con mensaje: Hola Mundo! Soy el proceso 1
+  Tiempo transcurrido 2.000324 (s):	proceso 0, llamando a MPI_Recv() [bloqueante] (fuente rank 2)
+  Tiempo transcurrido 4.000049 (s):	proceso 0, MPI_Recv() devolvio control con mensaje: Hola Mundo! Soy el proceso 2
+  Tiempo transcurrido 4.000075 (s):	proceso 0, llamando a MPI_Recv() [bloqueante] (fuente rank 3)
+  Tiempo transcurrido 6.000082 (s):	proceso 0, MPI_Recv() devolvio control con mensaje: Hola Mundo! Soy el proceso 3
+
+  Tiempo total = 0.000000 (s)
+  ```
+  - 
+- Resultados de ejecución non-blocking:
+  - `mpirun --oversubscribe -np 4 ./blocking`
+  - `mpirun --oversubscribe -np 4 ./blocking`
+  - `mpirun --oversubscribe -np 4 ./blocking`
+  - `mpirun --oversubscribe -np 4 ./blocking`
 
 ### En el caso de la versión no bloqueante, ¿qué sucede si se elimina la operación `MPI_Wait()` (línea 52)? ¿Se imprimen correctamente los mensajes enviados? ¿Por qué?
 
