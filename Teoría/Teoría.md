@@ -2242,6 +2242,22 @@ int main(int argc, char* argv[])
 
 <h1 align="center">Clase 9 - 23 de mayo, 2025</h1>
 
-## Tendencias
+## High Performance Computing
 
----
+### TOP500
+
+### Impacto del consumo energético
+
+### Impacto social y medioambiental
+
+### GREEN500
+
+### Aceleradores
+
+### Supercomputadoras en Argentina
+
+## GPUs
+
+## Intel Xeon Phi, GPUs y procesadores híbridos de Intel
+
+## FPGAs y ASICs
