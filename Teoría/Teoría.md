@@ -2246,18 +2246,108 @@ int main(int argc, char* argv[])
 
 ### TOP500
 
+- Ranking de las 500 supercomputadoras más potentes.
+- Comenzó en 1993 y sigue vigente hasta hoy.
+- Se actualiza dos veces por año, en junio y en noviembre.
+- Para el cálculo de la potencia se usa un benchmark llamado LINPACK.
+
 ### Impacto del consumo energético
+
+- Objetivo HPC = Incrementar el rendimiento y ocasionalmente con consideración precio/rendimiento.
+- El incremento enorme de performance de las supercomputadoras trajo como consecuencia un notable incremento en el consumo de energía eléctrica por parte de éstas.
+- El Capitán, la supercomputadora TOP 1, usa 29.5 MW.
+- Como comparación, un hogar demanda 0.25 kW.
+- Es decir que esta supercomputadora usa más energía que toda una ciudad entera.
 
 ### Impacto social y medioambiental
 
+- El enorme consumo de energía de las supercomputadoras tiene un impacto social y medioambiental debido a que esa energía debe salir de algun lado.
+- Esta generación masiva de energía contamina el medioambiente y genera muertes.
+- Representa uno de los mayores obstaculos para continuar optimizando a las supercomputadoras.
+
 ### GREEN500
+
+- Ranking de las 500 supercomputadoras más eficientes del mundo desde el punto de vista energético.
+- Comenzó en 2006 y sigue vigente hasta hoy.
+- Se actualiza dos veces por año, en junio y en noviembre.
+- Para el cálculo de la potencia se usa un benchmark llamado LINPACK.
+- Además, se mide el consumo energético durante su ejecución.
+- Se calcula el cociente potencia en FLOPS dividido uso de energía, y esto da como resultado la eficiencia energética de la supercomputadora.
 
 ### Aceleradores
 
+- Un acelerador es un dispositivo de hardware diseñado para mejorar el rendimiento del sistema.
+- Su uso en las supercomputadoras fue creciendo exponencialmente.
+- Esto se debe a que las placas de video, que usan aceleradores, son mucho más eficientes energéticamente que las CPUs.
+
 ### Supercomputadoras en Argentina
+
+
 
 ## GPUs
 
+### Concepto
+
+- Originalmente diseñadas para procesamiento de gráficos.
+- Debido a su gran potencia de cálculo, las empresas comenzaron a aumentar su grado de programación.
+- Motivó el surg... 
+
+### Diferencias vs CPUs
+
+- Las GPUs son mucho más rápidas que las CPUs debido a las diferencias de diseño.
+- ...
+- GPUs muchos más cores, pero más sencillos.
+- SIMD en las GPUs, MIMD en las CPUs.
+
+...
+
+### Jerarquía de memoria
+
+...
+
+### Arquitectura
+
+Memoria compartida...
+
+...
+
+### Tecnologías de programación
+
+CUDA funciona solo para GPUs NVIDIA
+
+
+OpenCL funciona en cualquier dispositivo, GPU CPU NVIDIA AMD INTEL FPGA etc ... No se usa mucho porque es demasiado complejo
+
+SYCL como OpenCL pero menos complejo
+
+...
+
+### Evolución de arquitecturas de NVIDIA
+
+...
+
+### Evolución de arquitecturas de AMD
+
+...
+
 ## Intel Xeon Phi, GPUs y procesadores híbridos de Intel
 
+### Intel Xeon Phi (primera generación)
+
+### Intel Xeon Phi - Knights Corner (segunda generación)
+
+### Intel Xeon Phi - Knights Mill (tercera generación)
+
+### Intel Xe
+
+### Procesadores híbridos de Intel 
+
+
+
 ## FPGAs y ASICs
+
+Estos dos temas NO ENTRAN en el teórico.
+
+###
+
+###
