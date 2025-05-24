@@ -2250,12 +2250,16 @@ int main(int argc, char* argv[])
 - Comenzó en 1993 y sigue vigente hasta hoy.
 - Se actualiza dos veces por año, en junio y en noviembre.
 - Para el cálculo de la potencia se usa un benchmark llamado LINPACK.
+- La supercomputadora número 1 en el top se llama El Capitan:
+  - Se encuentra en Estados Unidos.
+  - Tiene más de 11 millones de cores.
+  - Su potencia es de 1,742 exaflops, es decir 1700 trillones de operaciones por segundo.
 
 ### Impacto del consumo energético
 
-- Objetivo HPC = Incrementar el rendimiento y ocasionalmente con consideración precio/rendimiento.
+- El objetivo de HPC ha sido incrementar el rendimiento y ocasionalmente con consideración de precio/rendimiento.
 - El incremento enorme de performance de las supercomputadoras trajo como consecuencia un notable incremento en el consumo de energía eléctrica por parte de éstas.
-- El Capitán, la supercomputadora TOP 1, usa 29.5 MW.
+- El Capitán usa 29.5 MW.
 - Como comparación, un hogar demanda 0.25 kW.
 - Es decir que esta supercomputadora usa más energía que toda una ciudad entera.
 
@@ -2273,16 +2277,33 @@ int main(int argc, char* argv[])
 - Para el cálculo de la potencia se usa un benchmark llamado LINPACK.
 - Además, se mide el consumo energético durante su ejecución.
 - Se calcula el cociente potencia en FLOPS dividido uso de energía, y esto da como resultado la eficiencia energética de la supercomputadora.
+- La supercomputadora más eficiente del mundo es la JEDI, en Alemania.
 
 ### Aceleradores
 
 - Un acelerador es un dispositivo de hardware diseñado para mejorar el rendimiento del sistema.
 - Su uso en las supercomputadoras fue creciendo exponencialmente.
-- Esto se debe a que las placas de video, que usan aceleradores, son mucho más eficientes energéticamente que las CPUs.
+- Esto se debe a que las placas de video, que usan aceleradores, son mucho más eficientes energéticamente que las CPUs, brindando mucha más performance usando la misma o menos energía que una CPU.
 
 ### Supercomputadoras en Argentina
 
-
+- Argentina tiene y ha tenido varias supercomputadoras.
+- En producción:
+  - Mendieta Fase 2.
+  - Searfín.
+  - Eulogia.
+  - Mulatona.
+- Retiradas:
+  - Mendieta.
+  - Cluster SeCyT.
+  - Cristina.
+- Actualmente, la más potente en Argentina es la Clementina XXI:
+  - Está entre las 100 más poderosas del mundo.
+  - Es la segunda más poderosa de América Latina.
+  - Ocupa 7 metros cuadrados.
+  - Requiere energía equivalente a 300 hogares.
+  - Tiene un rendimiento máximo de 15,7 petaFLOPS.
+  - Posee 5120 núcleos Intel Xeon y 37888 núcleos Intel GPU: 74 nodos con 4 GPUs cada uno.
 
 ## GPUs
 
@@ -2290,64 +2311,228 @@ int main(int argc, char* argv[])
 
 - Originalmente diseñadas para procesamiento de gráficos.
 - Debido a su gran potencia de cálculo, las empresas comenzaron a aumentar su grado de programación.
-- Motivó el surg... 
+- Esto motivó el surgimiento de nuevas técnicas, lenguajes y herramientas para la programación de GPUs, lo cual permite utilizar a las mismas como arquitecturas paralelas para resolver problemas de propósito general.
 
 ### Diferencias vs CPUs
 
-- Las GPUs son mucho más rápidas que las CPUs debido a las diferencias de diseño.
-- ...
-- GPUs muchos más cores, pero más sencillos.
-- SIMD en las GPUs, MIMD en las CPUs.
+- Las GPUs son mucho más rápidas que las CPUs debido a las diferencias de diseño:
 
-...
+  - Las CPUs destinan los recursos de silicio principalmente a **memorias caché y a núcleos** de compleja organización que permitan explotar **paralelismo a nivel de isntrucciones**.
+  - Las GPUs emplean la mayor parte del silicio disponible en **unidades funcionales**. Cada una de ellas tiene un conjunto de **núcleos simples** que comparten lógica de control, ejecutan instrucciones en orden y operan en grupos como si fueran un **procesador vectorial**.
+
+- En resúmen:
+  - Las GPUs tienen muchos más cores, pero más sencillos.
+  - Las GPUs usan SIMD, las CPUs usan MIMD.
 
 ### Jerarquía de memoria
 
-...
+A diferencia de las CPUs, las GPUs tienen una jerarquía de memoria compleja:
+
+#### Memoria global
+
+- Es una memoria off-chip que sirve de memoria principal.
+- Posee un ancho de banda limitado y una latencia alta comparado a memorias on-chip o caché.
+
+#### Memoria compartida
+
+- Memoria on-chip caracterizada por alto ancho de banda y baja latencia.
+- Se administra por software y es accesible por todos los hilos activos de un multiprocesador.
+
+#### Memoria de constantes
+
+- Memoria rápida pero pequeña y de sólo lectura, ubicada dentro de la memoria global.
+- Es visible por todos los hilos.
+
+#### Memoria de texturas
+
+- Similar a la de constantes.
+- Memoria off-chip optimizada para localidad especial 2D.
 
 ### Arquitectura
 
-Memoria compartida...
-
-...
+- Las GPUs usan arquitecturas de memoria compartida inspiradas en el modelo SIMD de Flynn.
+- Debido a sus características, se adaptan mejor a aplicaciones que admiten **paralelismo de datos**, especialmente aquellas que son CPU-bound.
+  - No se adaptan para nada bien a aplicaciones que requieren paralelismo funcional.
 
 ### Tecnologías de programación
 
-CUDA funciona solo para GPUs NVIDIA
+#### CUDA
 
+- Es el estándar de facto para programación de GPUs en HPC.
+- Solo funciona para GPUs NVIDIA.
+- Usa el modelo de ejecución **host-device** y arquitectura de memoria de CUDA.
+  - El host es el responsable de administrar la memoria del dispositivo y sus transferencias, además de invocar la ejecución de los kernels.
+  - Un kernel es un trozo de código que ejecutan miles de hilos primitivos en paralelo en la GPU.
 
-OpenCL funciona en cualquier dispositivo, GPU CPU NVIDIA AMD INTEL FPGA etc ... No se usa mucho porque es demasiado complejo
+#### OpenCL
 
-SYCL como OpenCL pero menos complejo
+- Estándar para programación paralela multi-plataforma.
+- Usa el modelo de ejecución **host-device** y arquitectura de memoria de OpenCL.
+- Similar a CUDA pero con un enfoque más general ya que no sólo aplica a GPUs (CPUs, Xeon Phi's, FPGAs, DSPs, entre otros).
+- No se usa mucho porque es demasiado complejo.
 
-...
+#### SYCL
 
-### Evolución de arquitecturas de NVIDIA
+- Nuevamente, estándar para programación paralela multi-plataforma.
+- Similar a OpenCL pero menos complejo de usar:
+  - Memoria Compartida Unificada.
+  - Reducciones paralelas (integradas).
+  - Funciones a nivel de work-groups y sub-groups.
+  - Accessors.
+  - Interoperabilidad con otras APIs.
 
-...
+### Evolución de algunas arquitecturas de NVIDIA
+
+#### Maxwell - 2014
+
+- Rediseño de los SMXs pasando a llamarse SMMs → Hasta 1.35x de mejora en rendimiento por core y 2x de mejora en eficiencia energética.
+- Integración con CPUs de ARM.
+- Esquema de Memoria Unificada entre CPU y GPU para evitar reservas de memoria individuales (por software).
+
+#### Pascal - 2016
+
+- Orientada a mejorar la organización de la memoria y los buses de interconexión (adoptó HBM).
+- NVLINK, bus de alta velocidad (80 Gb/s) que reemplaza al PCIe (16 Gb/s).
+- Esquema de Memoria Unificada entre CPU y GPU para evitar reservas de memoria individuales (por hardware).
+- Soporte para precisión mixta → método que utiliza diferentes niveles de precisión dentro de una sola operación para lograr eficiencia computacional sin afectar el resultado.
+
+#### Volta - 2017
+
+- Orientada al uso de Machine Learning → Incorpora soporte para precisión media (float de 16 bits) mediante núcleos específicos (Tensor Cores).
+- Adopta HBM2.
+- NVLINK 2.0.
+
+#### Turing - 2018
+
+- Muy similar a Volta:
+  - Volta orientada al sector de alto rendimiento.
+  - Turing orientada al sector consumidor.
+- Incorpora soporte específico para Ray-Tracing vía núcleos dedicados a esto.
 
 ### Evolución de arquitecturas de AMD
 
-...
+- En el año 2006, AMD compró la empresa de placas gráficas ATI, lo que le permitió incrementar notablemente su capacidad de producir e innovar hardware gráfico.
+- Al igual que NVIDIA, para cada arquitectura, ofrece placas para diferentes segmentos (escritorio, integradas, mobile, workstation, servidores).
+- Una de las innovaciones de AMD fueron los APUs (Unidades de Procesamiento Acelerado):
+  - Combinan una CPU y una GPU en el mismo chip, y se basan en la arquitectura GCN.
+  - Pueden ser una buena opción desde el punto de vista del precio-rendimiento.
+  - Tienen buenos cocientes de eficiencia energética.
+  - Se ofrecen para computadoras desktop y notebooks.
+- Otra innovación de AMD es su tecnología de Memoria de Alto Ancho de Banda (HBM):
+  - HBM es un nuevo tipo de memoria RAM que organiza los chips de memoria en forma vertical y apilada (memoria 3D) y que puede ser aprovechado tanto por GPUs como CPUs.
+  - Múltiples mejoras: significativo ahorro de espacio y considerables aumentos en la velocidad de comunicación y en la eficiencia energética.
+  - Incorporada en las GPUs con nombre clave Fiji de de AMD en 2015. También fue adoptada por NVIDIA para sus placas de la arquitectura Pascal en 2016.
 
 ## Intel Xeon Phi, GPUs y procesadores híbridos de Intel
 
-### Intel Xeon Phi (primera generación)
+### Intel Xeon Phi - Knights Corner (primera generación)
 
-### Intel Xeon Phi - Knights Corner (segunda generación)
+- Arquitectura desarrollada por Intel para competir con las GPUs.
+- Lanzada en 2013.
+- Coprocesador de hasta 61 núcleos x86 con unidades vectoriales extendidas (512 bits) y SMT (4 hilos por núcleo).
+- Caché L1 de 64 Kb.
+- Caché L2 de 512 Kb.
+- Interconexión en forma de anillo de alta velocidad.
+- Conexión al host a través del bus PCIe Gen2.
+- Ejecuta un SO propio basado en Linux.
+- Compatibilidad de código con procesadores Xeon → requiere compilación cruzada.
+- Posee dos modos de ejecución:
+  - Nativo.
+  - Offload.
+
+### Intel Xeon Phi - Knights Landing (segunda generación)
+
+- Lanzada en 2015.
+- Capacidad de operar de forma autónoma.
+- Características arquitectónicas:
+  - Hasta 36 Tiles interconectadas por malla 2D.
+  - Cada Tile incluye 2 núcleos:
+    - Basados en la micro-arquitectura Intel Atom (fuera de orden, 4 hilos por núcleo).
+    - 2 unidades vectoriales por núcleo.
+    - Caché L2 compartida de 1 MB.
+- Compatibilidad total con arquitectura x86.
+- Incorpora memoria HBM mediante tecnología MCDRAM.
 
 ### Intel Xeon Phi - Knights Mill (tercera generación)
 
+- Lanzada en 2017.
+- Variante de Knights Landing orientada a Deep Learning → Incorpora instrucciones que duplican/cuadriplican rendimiento en FP32/FP16 pero reducen a la mitad en FP64.
+- Intel discontinuó la línea Xeon Phi en 2019 para orientarse a otros productos.
+
 ### Intel Xe
 
-### Procesadores híbridos de Intel 
+- La familia de GPUs Xe consiste de un grupo de micro-arquitecturas:
+  - Xe-LP: Integradas y de bajo consumo.
+  - Xe-HPG: Para Gaming.
+  - Xe-HP: Para Datacenters.
+  - Xe-HPC: Para HPC.
 
+### Procesadores híbridos de Intel
 
+- Arquitectura lanzada en 2021 que combina **dos tipos de procesadores en un mismo chip**, cores de performance y cores de eficiencia.
+- **Performance-cores (P-cores)**:
+  - Cores grandes físicamente, de alta performance y diseñados para velocidad pura.
+  - Altas frecuencias turbo y alto IPC.
+  - Ideales para trabajo monohilo.
+  - Poseen SMT.
+- **Efficient-cores (E-cores)**:
+  - Cores pequeños físicamente, varios de ellos juntos tienen el mismo tamaño que un solo P-core.
+  - Diseñados para maximizar la eficiencia de la CPU medida en performance per-watt.
+  - Ideales para tareas multihilo.
+  - Optimizados para correr tareas en segundo plano de forma eficiente.
+  - No poseen SMT.
 
-## FPGAs y ASICs
+## FPGAs y ASICs (estos dos temas NO ENTRAN en el teórico)
 
-Estos dos temas NO ENTRAN en el teórico.
+### FPGAs
 
-###
+- Field-Programmable Gate Array.
+- Se crearon en 1984 como una idea innovadora.
+- Consiste de circuitos integrados reconfigurables compuestos por interconexiones programables que unen bloques lógicos programables, bloques de memoria embebidos y bloques DSPs.
+- Es básicamente hardware programable.
+- La comunicación con el exterior se realiza a
+  través de los bloques de E/S, los cuales se organizan en forma de anillo alrededor de la circunferencia del dispositivo.
+- A lo largo de las décadas, han ido incorporando características como la adopción de estándares de E/S de alta velocidad, mejoras en la compatibilidad con las CPUs y un continuo aumento en la cantidad de recursos de las placas.
+- Inicialmente usadas para procesamiento digital de señales, hoy su uso se ha extendido (datacenter, IA, criptografía, etc).
+- Invierten la lógica tradicional:
+  - Con CPUs y GPUs, la aplicación se desarrolla para que se adecúe al hardware.
+  - Con FPGAS, el hardware se desarrolla para que se adapte a la aplicación en cuestión.
+- Si bien tanto la frecuencia de reloj como el pico de rendimiento suelen ser más bajos que los correspondientes a las CPUs y a las GPUs, **la capacidad de configurar el hardware para que se adapte al problema específico a resolver le da la posibilidad de obtener mejores rendimientos**.
+- Además, como no hay desperdicio de recursos de silicio, en general **son más eficientes desde el punto de vista energético**.
+- Son complejos de programar.
 
-###
+### ASICs
+
+- Un Circuito Integrado de Aplicación Específica (ASIC) hace referencia a un chip destinado a cumplir el propósito para el cual fue diseñado y que **no puede ser reprogramado/modificado para realizar otra función**.
+- Los ASICs están presentes en muchos de los dispositivos que nos rodean habitualmente: autos, televisores, celulares, heladeras, entre otros.
+
+### Comparación
+
+![FPGAs vs ASICs](https://hardwarebee.com/wp-content/uploads/2019/01/FPGA-vs-ASIC.jpg)
+
+### Resumen de aceleradores
+
+- Si bien cada dispositivo cuenta con sus características propias, existen diversos aspectos que son comunes a todos ellos:
+  - **Complejidad de programación**:
+    - Técnicas de programación y optimización específicas.
+    - Múltiples niveles de paralelismo.
+    - Balance de carga.
+    - Diversidad de modelos de lenguajes/modelos de programación.
+    - Ausencia de estándar consolidado.
+  - **Memoria del dispositivo separada**:
+    - Al estar separada de la memoria del host, su administración es clave para obtener buen rendimiento.
+    - Recientemente se han desarrollado modelos de memoria unificada.
+  - **Patrón de acceso a memoria**:
+    - Requieren de patrones de acceso específicos para obtener el mejor rendimiento, que no siempre coinciden con los de las CPU.
+  - **Many-cores**:
+    - Gran cantidad de núcleos pequeños.
+  - **Multi-hilado**:
+    - Aplicado de diferentes maneras.
+    - Buscan ocultar la latencia de la memoria.
+  - **Vectorización (SIMD)**:
+    - Cada uno con su enfoque, pero comparten el "espíritu".
+  - **Ejecución de instrucciones en orden**:
+    - La lógica de control está simplificada.
+  - **Memorias caché más pequeñas**:
+    - La mayor parte de los recursos se destina a unidades funcionales.
+    - Cobra mayor importancia explotar la localidad de datos.
