@@ -14,6 +14,7 @@
 - [Link clases virtuales de los martes](https://infolp.webex.com/infolp/j.php?MTID=m1cea8162413ac7baf8a09f2b1f02306e)
 - [Documento TP1](https://docs.google.com/document/d/1sY2X6lVUpQkRKpv-6spbJA3YMryvHexqKmXvl0BUPf0/edit?usp=sharing)
 - [Documento TP2](https://docs.google.com/document/d/1bxbW4ktR9I1k8O2KXF2efyOUTyFVjMSDtIdsOsV2LnM/edit?usp=sharing)
+- [Documento TP3](https://docs.google.com/document/d/1Huatk9D2xZi3CHzCBnrsjl_qMfZ2fKMfsMJlPy3Ymms/edit?usp=sharing)
 
 ### Cluster
 
