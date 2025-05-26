@@ -2,16 +2,18 @@
 
 ## Importante
 
-### General
-
 - [Material de la cátedra](https://ideas.info.unlp.edu.ar/sistemas-paralelos-2025/Contents/Material/View/Show?idCourseTool=30e0e6e4-27f5-11e6-b67b-9e71128cae77)
 - [Weblidi de la cátedra](https://weblidi.info.unlp.edu.ar/catedras/paralela/index.html)
-- [Link clases virtuales de los martes](https://infolp.webex.com/infolp/j.php?MTID=m1cea8162413ac7baf8a09f2b1f02306e)
+- Contacto: sparalelos@lidi.info.unlp.edu.ar
+
+## Práctica
+
+### General
+
 - [Otros repositorios](https://github.com/search?q=sistemas+paralelos+unlp&type=repositories&s=updated&o=desc)
-- [Clases teóricas](https://youtube.com/playlist?list=PLDJU8kNAPOn9P_5xHTw9uGac2VIpuQwkY&si=7x3C2Ij3boeq3pGO)
+- [Link clases virtuales de los martes](https://infolp.webex.com/infolp/j.php?MTID=m1cea8162413ac7baf8a09f2b1f02306e)
 - [Documento TP1](https://docs.google.com/document/d/1sY2X6lVUpQkRKpv-6spbJA3YMryvHexqKmXvl0BUPf0/edit?usp=sharing)
 - [Documento TP2](https://docs.google.com/document/d/1bxbW4ktR9I1k8O2KXF2efyOUTyFVjMSDtIdsOsV2LnM/edit?usp=sharing)
-- Contacto: sparalelos@lidi.info.unlp.edu.ar
 
 ### Cluster
 
@@ -19,6 +21,10 @@
 - Copiar archivos al cluster: `scp archivo paralelos:/nethome/spusuario15/`
 - Darle permisos de ejecución al script: `chmod +x script.sh`
 - Ejecutar la aplicación: `sbatch ./script.sh arg1 arg2`
+
+## Teoría
+
+- [Clases teóricas de años anteriores](https://youtube.com/playlist?list=PLDJU8kNAPOn9P_5xHTw9uGac2VIpuQwkY&si=7x3C2Ij3boeq3pGO)
 
 ## Cómo se aprueba la cursada?
 
