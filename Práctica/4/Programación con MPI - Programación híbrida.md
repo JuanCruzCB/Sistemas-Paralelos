@@ -24,7 +24,7 @@
 - Para ejecutar un binario en una máquina local, emplee la siguiente sintaxis: `mpirun –np P ./nombreBinario arg1 arg2 ... argN` donde P representa el número de procesos a generar.
 - Para ejecutar en el cluster de la cátedra, siga las instrucciones detalladas en el instructivo.
 
-## 1. Revisar el código mpi-simple.c. Compile y ejecute el código. Modifíquelo para que los procesos se comuniquen en forma de anillo: el proceso i debe enviarle un mensaje al proceso i + 1 , a excepción del último que debe comunicarse con el 0.
+## 1. Revisar el código `mpi-simple.c`. Compile y ejecute el código. Modifíquelo para que los procesos se comuniquen en forma de anillo: el proceso i debe enviarle un mensaje al proceso i + 1 , a excepción del último que debe comunicarse con el 0.
 
 El código **mpi-simple.c** funciona así:
 
@@ -42,11 +42,11 @@ Mensaje recibido: Hola Mundo! Soy el proceso 1!
 
 El código modificado con comunicación en forma de anillo se encuentra en la carpeta "Ejercicio 1".
 
-## 2. Los códigos blocking.c y non-blocking.c siguen el patrón master-worker, donde los procesos worker le envían un mensaje de texto al master empleando operaciones de comunicación bloqueantes y no bloqueantes, respectivamente.
+## 2. Los códigos `blocking.c` y `non-blocking.c` siguen el patrón master-worker, donde los procesos worker le envían un mensaje de texto al master empleando operaciones de comunicación bloqueantes y no bloqueantes, respectivamente.
 
 ### Compile y ejecute ambos códigos usando P = {4, 8, 16} (no importa que el número de núcleos sea menor que la cantidad de procesos). ¿Cuál de los dos retorna antes el control?
 
-- Compilo con: `mpicc -o blocking blocking.c`; `mpicc -o non-blocking non-blocking.c`
+- Compilo con `mpicc -o blocking blocking.c`; `mpicc -o non-blocking non-blocking.c`
 - Ejecuto con `mpirun --oversubscribe -np P ./programa`, uso --oversubscribe porque P > cantidad de cores.
 - **Resultados de ejecución blocking**:
 
@@ -271,11 +271,11 @@ Si se elimina `MPI_Wait`, los mensajes no se reciben correctamente porque la ope
 
 El punto clave es que la ventaja de `MPI_Irecv` **no es evitar la espera, sino permitir hacer trabajo útil mientras se reciben los datos**.
 
-## 3. Los códigos blocking-ring.c y non-blocking-ring.c comunican a los procesos en forma de anillo empleando operaciones bloqueantes y no bloqueantes, respectivamente. Compile y ejecute ambos códigos empleando P = {4, 8, 16} (no importa que el número de núcleos sea menor que la cantidad de procesos) y N = {10000000, 20000000, 40000000, ...}. ¿Cuál de los dos algoritmos requiere menos tiempo de comunicación? ¿Por qué?
+## 3. Los códigos `blocking-ring.c` y `non-blocking-ring.c` comunican a los procesos en forma de anillo empleando operaciones bloqueantes y no bloqueantes, respectivamente. Compile y ejecute ambos códigos empleando P = {4, 8, 16} (no importa que el número de núcleos sea menor que la cantidad de procesos) y N = {10000000, 20000000, 40000000, ...}. ¿Cuál de los dos algoritmos requiere menos tiempo de comunicación? ¿Por qué?
 
 ### Nota: Para el caso de P = 16, agregue la línea `--overcommit` al script de SLURM y el flag `--oversubscribe` al comando mpirun.
 
-- Compilo con: `mpicc -o blocking blocking-ring.c`; `mpicc -o non-blocking non-blocking-ring.c`
+- Compilo con `mpicc -o blocking blocking-ring.c`; `mpicc -o non-blocking non-blocking-ring.c`
 - Ejecuto con `mpirun --oversubscribe -np P ./programa N`, uso --oversubscribe porque P > cantidad de cores.
 - **Resultados de ejecución blocking**:
 
@@ -999,9 +999,28 @@ El punto clave es que la ventaja de `MPI_Irecv` **no es evitar la espera, sino p
 
 Los tiempos de comunicación de la versión no-bloqueante son significativamente mejores. Esto se debe a que la versión no bloqueante reduce el tiempo total al permitir que todas las comunicaciones ocurran en paralelo al mismo tiempo, mientras que la bloqueante las fuerza a ocurrir de forma secuencial.
 
-## 4. El algoritmo mpi_matmul.c computa una multiplicación de matrices cuadradas empleando comunicaciones punto a punto:
+## 4. El algoritmo `mpi_matmul.c` computa una multiplicación de matrices cuadradas empleando comunicaciones punto a punto:
 
 ### Compile y ejecute el código empleando N = {512, 1024, 2048} usando todos los núcleos de 1 y 2 nodos.
+
+- Compilo con `mpicc -o mpi_matmul mpi_matmul.c`
+- Ejecuto en el cluster con el script `mpi_matmul.sh`, al cual le modifico el N y los núcleos.
+
+**Resultados con un (1) nodo**:
+
+| N        | Tiempo total | Tiempo comunicación |
+| -------- | ------------ | ------------------- |
+| **512**  | 0.219915     | 0.034666            |
+| **1024** | 1.761465     | 0.171872            |
+| **2048** | 13.575914    | 0.730290            |
+
+**Resultados con dos (2) nodos**:
+
+| N        | Tiempo total | Tiempo comunicación |
+| -------- | ------------ | ------------------- |
+| **512**  | 0.283076     | 0.350365            |
+| **1024** | 1.543307     | 1.383034            |
+| **2048** | 9.447583     | 5.537866            |
 
 ### Revise las secciones de código donde se realiza la comunicación de las matrices. Analice el patrón de comunicación y piense si es posible emplear comunicaciones colectivas en lugar de a punto a punto. En ese caso, modifique el código original, compile y ejecute la nueva versión. ¿Se mejora la legibilidad? ¿Se logra mejorar el rendimiento? ¿Por qué?
 
