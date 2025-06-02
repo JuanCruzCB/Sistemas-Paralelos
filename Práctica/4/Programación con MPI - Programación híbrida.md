@@ -1024,6 +1024,37 @@ Los tiempos de comunicación de la versión no-bloqueante son significativamente
 
 ### Revise las secciones de código donde se realiza la comunicación de las matrices. Analice el patrón de comunicación y piense si es posible emplear comunicaciones colectivas en lugar de a punto a punto. En ese caso, modifique el código original, compile y ejecute la nueva versión. ¿Se mejora la legibilidad? ¿Se logra mejorar el rendimiento? ¿Por qué?
 
+Se pueden usar comunicaciones colectivas:
+
+1. Para distribuir la matriz A en partes iguales entre los distintos procesos, se puede usar `MPI_Scatter`.
+2. Para que todos los procesos tengan la matriz entera B, se puede usar `MPI_Bcast`.
+3. Para que el proceso coordinador re-arme la matriz resultado C, se puede usar `MPI_Gather`.
+
+- Una vez creada la versión modificada (`mpi_matmul_mejorado.c`) con estos cambios:
+- Compilo con `mpicc -o mpi_matmul_mejorado mpi_matmul_mejorado.c`
+- Ejecuto en el cluster con el script `mpi_matmul_mejorado.sh`, al cual le modifico el N y los núcleos.
+
+**Resultados con un (1) nodo**:
+
+| N        | Tiempo total | Tiempo comunicación |
+| -------- | ------------ | ------------------- |
+| **512**  | 0.215996     | 0.016239            |
+| **1024** | 1.703909     | 0.058804            |
+| **2048** | 13.489222    | 0.376488            |
+
+**Resultados con dos (2) nodos**:
+
+| N        | Tiempo total | Tiempo comunicación |
+| -------- | ------------ | ------------------- |
+| **512**  | 0.145825     | 0.054083            |
+| **1024** | 1.011738     | 0.200021            |
+| **2048** | 7.312100     | 0.780110            |
+
+**Conclusión**:
+
+- La legibilidad mejora sin duda, ya que hay menos sentencias if con send/receive y el código se hace mucho más corto.
+- El rendimiento también mejora drásticamente, sobre todo los tiempos de comunicación.
+
 ## 5. Desarrolle un algoritmo paralelo que resuelva la expresión R = AB + CD + EF, donde A, B, C, D, E y F son matrices cuadradas de NxN. Ejecute para N = {512, 1024, 2048} con P = {2, 4, 8, 16}.
 
 ## 6. Desarrolle un algoritmo paralelo que dado un vector V de tamaño N obtenga el valor máximo, el valor mínimo y valor promedio de sus elementos. Ejecute para P = {2, 4, 8, 16} variando el valor de N.

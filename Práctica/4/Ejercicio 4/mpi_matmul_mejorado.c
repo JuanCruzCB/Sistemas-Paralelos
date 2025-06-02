@@ -54,16 +54,10 @@ int main(int argc, char * argv[]) {
 
     commTimes[0] = MPI_Wtime();
 
-    // Distribuir datos
-    if (rank == COORDINATOR) {
-        for (i = 1; i < numProcs; i++) {
-            MPI_Send(a + i * stripSize * n, stripSize * n, MPI_DOUBLE, i, 0, MPI_COMM_WORLD);
-            MPI_Send(b, n * n, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
-        }
-    } else {
-        MPI_Recv(a, stripSize * n, MPI_DOUBLE, COORDINATOR, 0, MPI_COMM_WORLD, & status);
-        MPI_Recv(b, n * n, MPI_DOUBLE, COORDINATOR, 1, MPI_COMM_WORLD, & status);
-    }
+    // Distribuir la matriz A entre todos los procesos en partes iguales
+    MPI_Scatter(a, stripSize * n, MPI_DOUBLE, a, stripSize * n, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
+    // Repartir la misma matriz B entera entre todos los procesos
+    MPI_Bcast(b, n * n, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
 
     commTimes[1] = MPI_Wtime();
 
@@ -80,12 +74,7 @@ int main(int argc, char * argv[]) {
     commTimes[2] = MPI_Wtime();
 
     // Recolectar resultados parciales
-    if (rank == COORDINATOR) {
-        for (i = 1; i < numProcs; i++) {
-            MPI_Recv(c + i * stripSize * n, n * stripSize, MPI_DOUBLE, i, 2, MPI_COMM_WORLD, & status);
-        }
-    } else
-        MPI_Send(c, n * stripSize, MPI_DOUBLE, COORDINATOR, 2, MPI_COMM_WORLD);
+    MPI_Gather(c, stripSize * n, MPI_DOUBLE, c, stripSize * n, MPI_DOUBLE, COORDINATOR, MPI_COMM_WORLD);
 
     commTimes[3] = MPI_Wtime();
 
