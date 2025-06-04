@@ -1,0 +1,328 @@
+#include <stdio.h>
+#include <sys/time.h>
+#include <stdlib.h>
+#include "mpi.h" 
+
+#define MASTER 0
+#define EPSILON 1e-6
+
+int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
+    int i, j;
+
+    printf("Chequeando resultados...\n");
+    // Chequear que A×B es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] != B[j * N + i]) {
+                printf("Error en la multiplicación A×B en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación A×B correcta ya que A×B = B.\n");
+
+    // Chequear que C×B_T es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (c_por_bt[i * N + j] != B_T[j * N + i]) {
+                printf("Error en la multiplicación C×B_T en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación C×B_T correcta ya que C×B_T = B_T.\n");
+
+    // Chequear que Cociente es correcto.
+    double numerador = (1 * (N * N)) - (0 * 1);
+    double denominador = (1.0 / N) * ((N * N + 1) / 2.0);
+    double valor_esperado = numerador / denominador;
+    double diferencia = (cociente - valor_esperado >= 0) ? (cociente - valor_esperado) : -(cociente - valor_esperado);
+    if(diferencia > EPSILON) {
+        printf("Error en el cálculo del cociente.\n");
+        return 1;
+    }
+    printf("Cociente correcto.\n");
+
+    // Chequear que Cociente × [A×B] es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] * cociente != B[j * N + i] * cociente) {
+                printf("Error en la multiplicación Cociente × [A×B] en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación Cociente × [A×B] correcta ya que Cociente × [A×B] = B × Cociente.\n");
+
+    // Chequear que Cociente × [A×B] + [C×B_T] es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            double valor_esperado = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
+            double diferencia = (R[i * N + j] - valor_esperado >= 0) ? (R[i * N + j] - valor_esperado) : -(R[i * N + j] - valor_esperado);
+            if (diferencia > EPSILON) {
+                printf("Error en la multiplicación Cociente × [A×B] + [C×B_T] en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación Cociente × [A×B] + [C×B_T] correcta.\n");
+    return 0;
+}
+
+void imprimir_matriz_por_fila(double *A, int N) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%.2f ", A[i * N + j]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+void imprimir_matriz_por_columna(double *A, int N) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%.2f ", A[j * N + i]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+double dwalltime() {
+    double sec;
+    struct timeval tv;
+    gettimeofday( & tv, NULL);
+    sec = tv.tv_sec + tv.tv_usec / 1000000.0;
+    return sec;
+}
+
+void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int tam_bloque) {
+    int i, j, k;
+
+    for (i = 0; i < tam_bloque; i++) {
+        for (j = 0; j < tam_bloque; j++) {
+            double aux = 0.0;
+            for (k = 0; k < tam_bloque; k++) {
+                aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
+            }
+            bloque_resultado[i * n + j] += aux;
+        }
+    }
+}
+
+int main(int argc, char * argv[]) {
+    /* ARGUMENTOS */
+    int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
+    int tam_bloque = 64;                // Tamaño del bloque para la multiplicación por bloques.
+
+    /* MPI */
+    int rank;
+    int size;
+    MPI_Status status;
+    int stripSize;
+    double commTimes[8], maxCommTimes[8], minCommTimes[8], commTime, totalTime;
+
+
+    /* MATRICES */
+    double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;   // Matrices A, B, B transpuesta, C, R, A×B, C×B_T.
+    int i, j, k; 						// Índices para recorrer las matrices → i para fila; j para columna.
+    double acumulador = 1.0;            // Acumulador para los valores de la matriz B.
+    double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
+
+    /* MÍNIMO, MÁXIMO, PROMEDIO */
+    double max_A = -1.0;					// Valor máximo de la matriz A.
+    double max_B = -1.0;					// Valor máximo de la matriz B.
+    double min_A = 999.0;				// Valor mínimo de la matriz A.
+    double min_B = 999.0;				// Valor mínimo de la matriz B.
+    double prom_A = 0.0;					// Valor promedio de la matriz A.
+    double prom_B = 0.0;					// Valor promedio de la matriz B.
+    double suma_A = 0.0;					// Acumulador de los valores de la matriz A.
+    double suma_B = 0.0;					// Acumulador de los valores de la matriz B.
+    double celda_A = 0.0;				// Celda temporal de la matriz A.
+    double celda_B = 0.0;				// Celda temporal de la matriz B.
+
+    double timetick; 					// Se usa para medir el tiempo.
+
+    // Se debe enviar el N
+    if ( (argc != 2) || ((N = atoi(argv[1])) <= 0)) {
+        printf("\nError en los parametros. Uso: ./%s N\n", argv[0]);
+        exit(1);
+    }
+
+    MPI_Init( &argc, &argv );
+    MPI_Comm_size( MPI_COMM_WORLD, &size );
+    MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+
+    if (N % size != 0) {
+        printf("El tamaño de la matriz debe ser múltiplo del numero de procesos.\n");
+        exit(1);
+    }
+
+    stripSize = N / size;
+    tam_bloque = (stripSize < tam_bloque ? stripSize : tam_bloque);
+
+    // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
+    if (rank == MASTER) {  
+        A = (double *)malloc(N * N * sizeof(double));
+        C = (double *)malloc(N * N * sizeof(double));
+        R = (double *)malloc(N * N * sizeof(double));
+        a_por_b = (double *)malloc(N * N * sizeof(double));
+        c_por_bt = (double *)malloc(N * N * sizeof(double));
+    }
+    else {
+        A = (double *)malloc(n * stripSize  * sizeof(double));
+        C = (double *)malloc(n * stripSize * sizeof(double));
+        R = (double *)malloc(n * stripSize * sizeof(double));
+        a_por_b = (double *)malloc(n * stripSize * sizeof(double));
+        c_por_bt = (double *)malloc(n * stripSize * sizeof(double));
+    }
+
+    B_T = (double *)malloc(N * N * sizeof(double));
+    D = (double *)malloc(N * N * sizeof(double));
+
+
+    // Inicializar las cuatro matrices principales y las dos auxiliares.
+    if (rank == COORDINATOR) {
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < N; j++) {
+                if(i == j) {
+                    A[i * N + j] = 1.0;
+                    C[i * N + j] = 1.0;
+                }
+                else {
+                    A[i * N + j] = 0.0;
+                    C[i * N + j] = 0.0;
+                }
+    
+                B[j * N + i] = acumulador;
+                R[i * N + j] = 0.0;
+                a_por_b[i * N + j] = 0.0;
+                c_por_bt[i * N + j] = 0.0;
+    
+                acumulador += 1.0;
+            }
+        }
+    }
+    else {
+        for (i = 0; i < stripSize; i++) {
+            for (j = 0; j < stripSize; j++) {
+                a_por_b[i * N + j] = 0.0;
+                c_por_bt[i * N + j] = 0.0;
+                R[i * N + j] = 0.0;
+            }
+        }
+    }
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    commTimes[0] = MPI_Wtime();
+
+    MPI_Scatter(A, N * stripSize, MPI_DOUBLE, A, n * stripSize, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Scatter(C, N * stripSize, MPI_DOUBLE, C, n * stripSize, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+    MPI_Bcast(B_T, N * N , MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Bcast(D, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+    commTimes[1] = MPI_Wtime();
+
+    // Inicializar la matriz B_T (B transpuesta).
+    // SIN RESOLVER
+    for(i = 0; i < N ; i++)
+        for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
+
+    // Calcular el valor máximo, mínimo y promedio de la matriz A.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            celda_A = A[i * N + j];
+            suma_A += celda_A;
+            if (celda_A > max_A) max_A = celda_A;
+            if (celda_A < min_A) min_A = celda_A;
+        }
+    }
+
+    // Calcular el valor máximo, mínimo y promedio de la matriz B.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            celda_B = B[i * N + j];
+            suma_B += celda_B;
+            if (celda_B > max_B) max_B = celda_B;
+            if (celda_B < min_B) min_B = celda_B;
+        }
+    }
+
+    // Se recolectan los minimos, maximos y promedios
+    // REVISAR EL TEMA DE MIN_A , MIN_B
+    MPI_Reduce(&local_min, &min, 2, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
+    MPI_Reduce(&local_max, &max, 2, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+    MPI_Reduce(&local_prom, &prom, 2, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
+
+    if (rank == COORDINATOR) {
+        prom_A = suma_A / (N * N);
+        prom_B = suma_B / (N * N);
+        cociente = ((max_A * max_B) - (min_A * min_B)) / (prom_A * prom_B);
+    }
+    
+
+    // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
+    // Usaria la función de malmulblks para que sea más prolijo
+    for (i = 0; i < stripSize; i += tam_bloque) {
+        for (j = 0; j < stripSize; j += tam_bloque) {
+            for (k = 0; k < stripSize; k += tam_bloque) {
+                multiplicar_bloque( & A[i * stripSize + k], 
+                                    & B[j * stripSize + k], 
+                                    & a_por_b[i * stripSize + j], 
+                                    stripSize, tam_bloque);
+            }
+        }
+    }
+
+    // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
+    // Usaria la función de malmulblks para que sea más prolijo
+    for (i = 0; i < stripSize; i += tam_bloque) {
+        for (j = 0; j < stripSize; j += tam_bloque) {
+            for (k = 0; k < stripSize; k += tam_bloque) {
+                multiplicar_bloque( & C[i * stripSize + k], 
+                                    & B_T[j * stripSize + k], 
+                                    & c_por_bt[i * stripSize + j], 
+                                    stripSize, tam_bloque);
+            }
+        }
+    }
+
+    commTimes[4] = MPI_Wtime();
+
+    MPI_Bcast(&cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+    commTimes[5] = MPI_Wtime();
+
+    // Continuar...
+
+    // Finalmente multiplicar la matriz auxiliar a_por_b por cociente y sumarle a eso la matriz c_por_bt.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
+        }
+    }
+
+    MPI_Finalize();
+
+    if (rank == COORDINATOR) {
+        totalTime = maxCommTimes[7] - minCommTimes[0];
+        commTime = (maxCommTimes[1] - minCommTimes[0]) + (maxCommTimes[3] - minCommTimes[2]) + (maxCommTimes[5] - minCommTimes[4]) + (maxCommTimes[7] - minCommTimes[6]);
+
+        printf("Calculo de vector (N=%d)\tTiempo total=%lf\tTiempo comunicacion=%lf\n", N, totalTime, commTime);
+    }
+
+    chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
+
+    free(A);
+    free(B);
+    free(B_T);
+    free(C);
+    free(R);
+    free(a_por_b);
+    free(c_por_bt);
+
+    return (0);
+}
