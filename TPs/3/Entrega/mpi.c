@@ -6,9 +6,55 @@
 #define MASTER 0
 #define EPSILON 1e-6
 
-// Chequear que Cociente × [A×B] + [C×B_T] es correcto.
-int chequear_resultados(double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
+int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
     int i, j;
+
+    printf("Chequeando resultados...\n");
+    // Chequear que A×B es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] != B[j * N + i]) {
+                printf("Error en la multiplicación A×B en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación A×B correcta ya que A×B = B.\n");
+
+    // Chequear que C×B_T es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (c_por_bt[i * N + j] != B_T[j * N + i]) {
+                printf("Error en la multiplicación C×B_T en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación C×B_T correcta ya que C×B_T = B_T.\n");
+
+    // Chequear que Cociente es correcto.
+    double numerador = (1 * (N * N)) - (0 * 1);
+    double denominador = (1.0 / N) * ((N * N + 1) / 2.0);
+    double valor_esperado = numerador / denominador;
+    double diferencia = (cociente - valor_esperado >= 0) ? (cociente - valor_esperado) : -(cociente - valor_esperado);
+    if(diferencia > EPSILON) {
+        printf("Error en el cálculo del cociente.\n");
+        return 1;
+    }
+    printf("Cociente correcto.\n");
+
+    // Chequear que Cociente × [A×B] es correcto.
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            if (a_por_b[i * N + j] * cociente != B[j * N + i] * cociente) {
+                printf("Error en la multiplicación Cociente × [A×B] en la posición [%d][%d]\n", i, j);
+                return 1;
+            }
+        }
+    }
+    printf("Multiplicación Cociente × [A×B] correcta ya que Cociente × [A×B] = B × Cociente.\n");
+
+    // Chequear que Cociente × [A×B] + [C×B_T] es correcto.
     for (i = 0; i < N; i++) {
         for (j = 0; j < N; j++) {
             double valor_esperado = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
@@ -116,8 +162,9 @@ int main(int argc, char * argv[]) {
         R = (double *)malloc(N * stripSize * sizeof(double));
     }
 
-    B_T = (double *)malloc(N * N * sizeof(double));
     B = (double *)malloc(N * N * sizeof(double));
+    B_T = (double *)malloc(N * N * sizeof(double));
+    
 
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     if (rank == MASTER) {
@@ -143,7 +190,7 @@ int main(int argc, char * argv[]) {
     }
     else {
         for (i = 0; i < stripSize; i++) {
-            for (j = 0; j < stripSize; j++) {
+            for (j = 0; j < N; j++) {
                 a_por_b[i * N + j] = 0.0;
                 c_por_bt[i * N + j] = 0.0;
                 R[i * N + j] = 0.0;
@@ -157,8 +204,7 @@ int main(int argc, char * argv[]) {
 
     MPI_Scatter(A, N * stripSize, MPI_DOUBLE, A, N * stripSize, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Scatter(C, N * stripSize, MPI_DOUBLE, C, N * stripSize, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
-
-    MPI_Bcast(B_T, N * N , MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Bcast(B, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
     commTimes[1] = MPI_Wtime();
 
@@ -181,7 +227,9 @@ int main(int argc, char * argv[]) {
     }
 
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
-    for(i = 0; i < stripSize; i++) {
+    // Cada worker arranca desde su lugar porque si bien todos tienen B completa, cada uno debe calcular
+    // solo una parte de B
+    for(i = rank * stripSize; i < rank * stripSize + stripSize; i++) {
         for(j = 0; j < N; j++) {
 
             celdaB = B[i * N + j];
@@ -198,26 +246,31 @@ int main(int argc, char * argv[]) {
         }
     }
 
+
     commTimes[2] = MPI_Wtime();
 
-    MPI_Reduce(&local_min, &min_AB, 2, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
-    MPI_Reduce(&local_max, &max_AB, 2, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
-    MPI_Reduce(&local_prom, &prom_AB, 2, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
+    // Todos los workers hacen un Allreduce para obtener el máximo, mínimo y promedio de A y B.
+    MPI_Allreduce(&local_min, &min_AB, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max, &max_AB, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_prom, &prom_AB, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     
     commTimes[3] = MPI_Wtime();
 
     // Se calcula el cociente 
-    if (rank == MASTER) {
-        prom_AB[0] = prom_AB[0] / (N * N);
-        prom_AB[0] = prom_AB[1] / (N * N);
-        cociente = ((max_AB[0] * max_AB[1]) - (min_AB[0] * min_AB[1])) / (prom_AB[0] * prom_AB[1]);
+    prom_AB[0] = prom_AB[0] / (N * N);
+    prom_AB[1] = prom_AB[1] / (N * N);
+    cociente = ((max_AB[0] * max_AB[1]) - (min_AB[0] * min_AB[1])) / (prom_AB[0] * prom_AB[1]);
+    
+
+    // Inicializar la matriz B_T (B transpuesta)
+    if(rank == MASTER) {
+        for(i = 0; i < N ; i++)
+            for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
     }
 
-    // Los workers se repartieron B_T y cada uno inicializa su parte
-    for(i = 0; i < stripSize ; i++) {
-        for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
-    }
-        
+    // CONTAR TIEMPO DE COMUNICACION
+    MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
     matmulblks(A , B , a_por_b, N, tam_bloque, stripSize);
 
@@ -226,11 +279,10 @@ int main(int argc, char * argv[]) {
 
     commTimes[4] = MPI_Wtime();
 
-    MPI_Bcast(&cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    //MPI_Bcast(&cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
     commTimes[5] = MPI_Wtime();
 
-    
     for (i = 0; i < stripSize; i++) {
         for (j = 0; j < N; j++) {
             R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
@@ -248,6 +300,7 @@ int main(int argc, char * argv[]) {
     MPI_Reduce(commTimes, minCommTimes, 8, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
     MPI_Reduce(commTimes, maxCommTimes, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
 
+
     MPI_Gather(a_por_b, stripSize * N, MPI_DOUBLE, a_por_b, stripSize * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Gather(c_por_bt, stripSize * N, MPI_DOUBLE, c_por_bt, stripSize * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
@@ -257,7 +310,7 @@ int main(int argc, char * argv[]) {
 
         printf("\nTiempo total=%lf\tTiempo comunicacion=%lf\n", totalTime, commTime);
 
-        chequear_resultados(R, a_por_b, c_por_bt, N, cociente);
+        chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
     }
 
     MPI_Finalize();
