@@ -147,6 +147,7 @@ int main(int argc, char * argv[]) {
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     // El master tiene que repartir las matrices A y C entre los workers, por eso las tiene completas.
     if (rank == MASTER) {
+        printf("El tamaño de bloque a usar será: %d", tam_bloque);
         A = (double *)malloc(N * N * sizeof(double));
         C = (double *)malloc(N * N * sizeof(double));
         a_por_b = (double *)malloc(N * N * sizeof(double));
