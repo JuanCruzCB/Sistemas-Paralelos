@@ -305,7 +305,7 @@ int main(int argc, char * argv[]) {
             (tiempos_comunicacion_max[5] - tiempos_comunicacion_min[4]) +
             (tiempos_comunicacion_max[7] - tiempos_comunicacion_min[6]);
 
-        printf("\nTiempo total = %lf\tTiempo de comunicación total = %lf\n", tiempo_total, tiempo_comunicacion_total);
+        printf("Tiempo total = %lf\nTiempo de comunicación total = %lf\n\n", tiempo_total, tiempo_comunicacion_total);
         chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
     }
 
