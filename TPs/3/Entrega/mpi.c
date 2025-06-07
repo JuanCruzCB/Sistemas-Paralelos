@@ -227,8 +227,6 @@ int main(int argc, char * argv[]) {
     }
 
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
-    // Cada worker arranca desde su lugar porque si bien todos tienen B completa, cada uno debe calcular
-    // solo una parte de B
     for(i = rank * stripSize; i < rank * stripSize + stripSize; i++) {
         for(j = 0; j < N; j++) {
 
@@ -268,20 +266,17 @@ int main(int argc, char * argv[]) {
             for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
     }
 
-    // CONTAR TIEMPO DE COMUNICACION
+    commTimes[4] = MPI_Wtime();
+    
     MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+
+    commTimes[5] = MPI_Wtime();
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
     matmulblks(A , B , a_por_b, N, tam_bloque, stripSize);
 
     // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
     matmulblks(C , B_T , c_por_bt, N, tam_bloque, stripSize);
-
-    commTimes[4] = MPI_Wtime();
-
-    //MPI_Bcast(&cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
-
-    commTimes[5] = MPI_Wtime();
 
     for (i = 0; i < stripSize; i++) {
         for (j = 0; j < N; j++) {
@@ -299,7 +294,6 @@ int main(int argc, char * argv[]) {
 
     MPI_Reduce(commTimes, minCommTimes, 8, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
     MPI_Reduce(commTimes, maxCommTimes, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
-
 
     MPI_Gather(a_por_b, stripSize * N, MPI_DOUBLE, a_por_b, stripSize * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Gather(c_por_bt, stripSize * N, MPI_DOUBLE, c_por_bt, stripSize * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
