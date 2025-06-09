@@ -127,13 +127,12 @@ int main(int argc, char * argv[]) {
     double celdaB = 0.0;
 
     // Se debe enviar el N de tamaño de las matrices.
-    if ((argc != 3) || ((N = atoi(argv[1])) <= 0) || (T <= 0)) {
-        printf("\nError en los parametros. Uso: ./%s N T (cantidad de hilos por proceso)\n", argv[0]);
+    if ((argc != 2) || ((N = atoi(argv[1])) <= 0)) {
+        printf("\nError en los parametros. Uso: ./%s N\n", argv[0]);
         exit(1);
     }
 
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -143,7 +142,7 @@ int main(int argc, char * argv[]) {
     }
 
     porcion = N / size;
-    tam_bloque = (porcion < tam_bloque ? porcion : tam_bloque);
+    tam_bloque = (N / (size * OMP_NUM_THREADS) < tam_bloque ? N / (size * OMP_NUM_THREADS) : tam_bloque);
 
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     // El master tiene que repartir las matrices A y C entre los workers, por eso las tiene completas.
@@ -209,10 +208,10 @@ int main(int argc, char * argv[]) {
     MPI_Bcast(B, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     tiempos_comunicacion[1] = MPI_Wtime();
 
-    #pragma omp parallel num_threads(T) private(i, j, k, celdaA, celdaB)
+    #pragma omp parallel private(i, j, k, celdaA, celdaB)
 
         // Calcular el valor máximo, mínimo y promedio de la matriz A.
-        #pragma omp for reduction(min_AB : local_min[0]) reduction(max_AB : local_max[0]) reduction(+ : local_prom[0]) nowait schedule(static)
+        #pragma omp for reduction(min : local_min[0]) reduction(max : local_max[0]) reduction(+ : local_prom[0]) nowait schedule(static)
             for (i = 0; i < stripSize; i++) {
                 for (j = 0; j < N; j++) {
                     celdaA = A[i * N + j];
@@ -231,7 +230,7 @@ int main(int argc, char * argv[]) {
 
 
         // Calcular el valor máximo, mínimo y promedio de la matriz B.
-        #pragma omp for reduction(min_AB : local_min[1]) reduction(max_AB : local_max[1]) reduction(+ : local_prom[1]) schedule(static)
+        #pragma omp for reduction(min : local_min[1]) reduction(max : local_max[1]) reduction(+ : local_prom[1]) schedule(static)
             for (i = rank * porcion; i < rank * porcion + porcion; i++) {
                 for (j = 0; j < N; j++) {
                     celdaB = B[i * N + j];
@@ -248,52 +247,50 @@ int main(int argc, char * argv[]) {
                 }
             }
 
-        
-        #pragma omp for nowait schedule(static)
+        #pragma omp single
+        {
+            local_prom[0] = local_prom[0] / (N * N);
+            local_prom[1] = local_prom[1] / (N * N);
+            cociente = ((local_max[0] * local_max[1]) - (local_min[0] * local_min[1])) / (local_prom[0] * local_prom[1]);
+        }
+
+            
+        #pragma omp master
+        {    
+            for(i = 0; i < N ; i++)
+                for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
+
+            tiempos_comunicacion[2] = MPI_Wtime();
+            MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+            MPI_Bcast(cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+            tiempos_comunicacion[3] = MPI_Wtime();
+        }
+
+        #pragma omp for schedule(static) nowait
             for (i = 0; i < stripSize; i += tam_bloque) {
                 for (j = 0; j < N; j += tam_bloque) {
                     for (k = 0; k < N; k += tam_bloque) {
-                        multiplicar_bloque(&A[i * n + k], &B[j * n + k], &a_por_b[i * n + j], n, tam_bloque);
+                        multiplicar_bloque(&A[i * N + k], &B[j * N + k], &a_por_b[i * N + j], N, tam_bloque);
                     }
                 }
             }
 
-    // tiempos_comunicacion[2] = MPI_Wtime();
-    // // Todos los workers hacen un Allreduce para tener todos el máximo, mínimo y promedio de A y B.
-    // // Se usa un arreglo de mínimos máximos y promedios para evitar el overhead de hacer 3 Allreduce más.
-    // MPI_Allreduce(&local_min, &min_AB, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    // MPI_Allreduce(&local_max, &max_AB, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    // MPI_Allreduce(&local_prom, &prom_AB, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    // tiempos_comunicacion[3] = MPI_Wtime();
+        #pragma omp for nowait schedule(static) nowait
+            for (i = 0; i < stripSize; i += tam_bloque) {
+                for (j = 0; j < N; j += tam_bloque) {
+                    for (k = 0; k < N; k += tam_bloque) {
+                        multiplicar_bloque(&C[i * N + k], &B_T[j * N + k], &c_por_bt[i * N + j], N, tam_bloque);
+                    }
+                }
+            }
 
-    // Se calcula el cociente.
-    prom_AB[0] = prom_AB[0] / (N * N);
-    prom_AB[1] = prom_AB[1] / (N * N);
-    cociente = ((max_AB[0] * max_AB[1]) - (min_AB[0] * min_AB[1])) / (prom_AB[0] * prom_AB[1]);
+        #pragma omp for nowait schedule(static) nowait
+            for (i = 0; i < porcion; i++) {
+                for (j = 0; j < N; j++) {
+                    R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
+                }
+            }
 
-    // El master inicializa la matriz B_T (B transpuesta).
-    if(rank == MASTER) {
-        for(i = 0; i < N ; i++)
-            for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
-    }
-
-    tiempos_comunicacion[4] = MPI_Wtime();
-    // El master le pasa la matriz B_T a todos los workers.
-    MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
-    tiempos_comunicacion[5] = MPI_Wtime();
-
-    // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
-    multiplicar_matrices(A, B, a_por_b, N, tam_bloque, porcion);
-
-    // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
-    multiplicar_matrices(C, B_T, c_por_bt, N, tam_bloque, porcion);
-
-    // Cada worker calcula la porción de (Cociente * a_por_b) + c_por_bt.
-    for (i = 0; i < porcion; i++) {
-        for (j = 0; j < N; j++) {
-            R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
-        }
-    }
 
     tiempos_comunicacion[6] = MPI_Wtime();
     // Cada worker le envía al master su porción de R y el master lo combina todo en R.
