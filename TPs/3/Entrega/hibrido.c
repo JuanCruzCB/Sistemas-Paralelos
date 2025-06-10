@@ -303,8 +303,8 @@ int main(int argc, char * argv[]) {
     // Fin de la medición de los tiempos de comunicación.
 
     // El master obtiene los 8 mínimos y 8 máximos de cada medición.
-    //MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_min, 8, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
-    //MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_max, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+    MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_min, 8, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
+    MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_max, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
     // El master obtiene las matrices a_por_b y c_por_bt completas que las necesita para chequear que los resultados
     // son correctos.
     MPI_Gather(a_por_b, porcion * N, MPI_DOUBLE, a_por_b, porcion * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
@@ -312,15 +312,15 @@ int main(int argc, char * argv[]) {
 
     if (rank == MASTER) {
         // El tiempo total del programa es desde que empieza la primera comunicación hasta que termina la última.
-        // tiempo_total = tiempos_comunicacion_max[7] - tiempos_comunicacion_min[0];
-        // // El tiempo de comunicación total es la suma de los tiempos de todas las comunicaciones individuales que hubo.
-        // tiempo_comunicacion_total =
-        //     (tiempos_comunicacion_max[1] - tiempos_comunicacion_min[0]) +
-        //     (tiempos_comunicacion_max[3] - tiempos_comunicacion_min[2]) +
-        //     (tiempos_comunicacion_max[5] - tiempos_comunicacion_min[4]) +
-        //     (tiempos_comunicacion_max[7] - tiempos_comunicacion_min[6]);
+        tiempo_total = tiempos_comunicacion_max[7] - tiempos_comunicacion_min[0];
+        // El tiempo de comunicación total es la suma de los tiempos de todas las comunicaciones individuales que hubo.
+        tiempo_comunicacion_total =
+            (tiempos_comunicacion_max[1] - tiempos_comunicacion_min[0]) +
+            (tiempos_comunicacion_max[3] - tiempos_comunicacion_min[2]) +
+            (tiempos_comunicacion_max[5] - tiempos_comunicacion_min[4]) +
+            (tiempos_comunicacion_max[7] - tiempos_comunicacion_min[6]);
 
-        // printf("Tiempo total = %lf\nTiempo de comunicación total = %lf\n\n", tiempo_total, tiempo_comunicacion_total);
+        printf("Tiempo total = %lf\nTiempo de comunicación total = %lf\n\n", tiempo_total, tiempo_comunicacion_total);
         chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
     }
 
