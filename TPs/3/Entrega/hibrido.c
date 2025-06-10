@@ -83,18 +83,6 @@ void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double 
     }
 }
 
-void multiplicar_matrices(double *A, double *B, double *resultado, int n, int tam_bloque, int porcion)
-{
-    int i, j, k;
-
-    for (i = 0; i < porcion; i += tam_bloque) {
-        for (j = 0; j < n; j += tam_bloque) {
-            for (k = 0; k < n; k += tam_bloque)
-                multiplicar_bloque(&A[i * n + k], &B[j * n + k], &resultado[i * n + j], n, tam_bloque);
-        }
-    }
-}
-
 int main(int argc, char * argv[]) {
     /* ARGUMENTOS */
     int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
@@ -119,12 +107,12 @@ int main(int argc, char * argv[]) {
     int tam_bloque = 128;               // Tamaño del bloque para la multiplicación por bloques.
 
     /* MÍNIMO, MÁXIMO, PROMEDIO */
-    double promedioA = 0.0;
-    double promedioB = 0.0;
-    double local_max_A = -999.0;
-    double local_max_B = -999.0;
-    double local_min_A = 999.0;
-    double local_min_B = 999.0;
+    double promedioAB[2] = {0.0, 0.0};
+    double max_AB[2] = {-999.0, -999.0};
+    double min_AB[2] = {999.0, 999.0};
+    double max[2] = {-999.0, -999.0};
+    double min[2] = {999.0, 999.0};
+    double prom[2] = {0.0, 0.0};
     double celdaA = 0.0;
     double celdaB = 0.0;
 
@@ -149,7 +137,6 @@ int main(int argc, char * argv[]) {
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     // El master tiene que repartir las matrices A y C entre los workers, por eso las tiene completas.
     if (rank == MASTER) {
-        printf("El tamaño de bloque a usar será: %d", tam_bloque);
         A = (double *)malloc(N * N * sizeof(double));
         C = (double *)malloc(N * N * sizeof(double));
         a_por_b = (double *)malloc(N * N * sizeof(double));
@@ -214,49 +201,43 @@ int main(int argc, char * argv[]) {
     {
 
         // Calcular el valor máximo, mínimo y promedio de la matriz A.
-        #pragma omp for reduction(min : local_min_A) reduction(max : local_max_A) reduction(+ : promedioA) nowait schedule(static)
+        #pragma omp for reduction(min : min_AB[0]) reduction(max : max_AB[0]) reduction(+ : promedioAB[0]) nowait schedule(static)
             for (i = 0; i < porcion; i++) {
                 for (j = 0; j < N; j++) {
                     celdaA = A[i * N + j];
 
-                    if (celdaA < local_min_A) {
-                        local_min_A = celdaA;
+                    if (celdaA < min_AB[0]) {
+                        min_AB[0] = celdaA;
                     }
 
-                    if (celdaA > local_max_A){
-                        local_max_A = celdaA;
+                    if (celdaA > max_AB[0]){
+                        max_AB[0] = celdaA;
                     }
 
-                    promedioA += celdaA;
+                    promedioAB[0] += celdaA;
                 }
             }
 
 
         // Calcular el valor máximo, mínimo y promedio de la matriz B.
-        #pragma omp for reduction(min : local_min_B) reduction(max : local_max_B) reduction(+ : promedioB) schedule(static)
+        #pragma omp for reduction(min : min_AB[1]) reduction(max : max_AB[1]) reduction(+ : promedioAB[1]) nowait schedule(static)
             for (i = rank * porcion; i < rank * porcion + porcion; i++) {
                 for (j = 0; j < N; j++) {
                     celdaB = B[i * N + j];
 
-                    if (celdaB < local_min_B) {
-                        local_min_B = celdaB;
+                    if (celdaB < min_AB[1]) {
+                        min_AB[1] = celdaB;
                     }
 
-                    if (celdaB > local_max_B) {
-                        local_max_B = celdaB;
+                    if (celdaB > max_AB[1]) {
+                        max_AB[1] = celdaB;
                     }
 
-                    promedioB += celdaB;
+                    promedioAB[1] += celdaB;
                 }
             }
 
-
-        promedioA = promedioA / (N * N);
-        promedioB = promedioB / (N * N);
-        cociente = ((local_max_A * local_max_B) - (local_min_A * local_min_B)) / (promedioA * promedioB);
-
-        #pragma omp barrier // Los hilos esperan a que todos terminen de calcular el cociente
-
+        
         #pragma omp for schedule(static) nowait
             for (i = 0; i < porcion; i += tam_bloque) {
                 for (j = 0; j < N; j += tam_bloque) {
@@ -268,15 +249,31 @@ int main(int argc, char * argv[]) {
             
         #pragma omp master
         {    
-            for(i = 0; i < N ; i++)
-                for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
-
+            // Lo ejecutan todos los hilos master de cada proceso = Se ejecuta T veces
             tiempos_comunicacion[2] = MPI_Wtime();
-            MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+            MPI_Allreduce(&min_AB, &min, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+            MPI_Allreduce(&max_AB, &max, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+            MPI_Allreduce(&promedioAB, &prom, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
             tiempos_comunicacion[3] = MPI_Wtime();
+
+            if(rank == MASTER) { // Lo ejecuta UNICAMENTE el proceso master
+                // El master calcula el cociente.
+                prom[0] = prom[0] / (N * N);
+                prom[1] = prom[1] / (N * N);
+                cociente = ((max[0] * max[1]) - (min[0] * min[1])) / (prom[0] * prom[1]);
+
+                // Sólo el proceso master inicializa la matriz B_T (B transpuesta).
+                for(i = 0; i < N ; i++)
+                    for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
+            }
+            
+            tiempos_comunicacion[4] = MPI_Wtime();
+            MPI_Bcast(B_T, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+            MPI_Bcast(&cociente, 1, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+            tiempos_comunicacion[5] = MPI_Wtime();
         }
 
-        #pragma omp barrier // Los hilos esperan a que el hilo master haya inicializado B_T
+        #pragma omp barrier // Los hilos esperan a que el hilo master haya inicializado B_T y cociente
 
         #pragma omp for nowait schedule(static)
             for (i = 0; i < porcion; i += tam_bloque) {
