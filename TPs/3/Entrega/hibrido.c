@@ -210,7 +210,8 @@ int main(int argc, char * argv[]) {
     MPI_Bcast(B, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     tiempos_comunicacion[1] = MPI_Wtime();
 
-    #pragma omp parallel private(i, j, k, celdaA, celdaB) 
+    #pragma omp parallel private(i, j, k, celdaA, celdaB)
+    {
 
         // Calcular el valor máximo, mínimo y promedio de la matriz A.
         #pragma omp for reduction(min : local_min_A) reduction(max : local_max_A) reduction(+ : promedioA) nowait schedule(static)
@@ -292,6 +293,7 @@ int main(int argc, char * argv[]) {
                     R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
                 }
             }
+    }
 
     tiempos_comunicacion[6] = MPI_Wtime();
     // Cada worker le envía al master su porción de R y el master lo combina todo en R.
