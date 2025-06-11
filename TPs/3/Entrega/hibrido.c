@@ -205,48 +205,40 @@ int main(int argc, char * argv[]) {
     {
         // Calcular el valor máximo, mínimo y promedio de la matriz A.
         #pragma omp for reduction(min : min_AB[0]) reduction(max : max_AB[0]) reduction(+ : prom_AB[0]) nowait schedule(static)
-            for (i = 0; i < tam_submatriz; i++) {
-                for (j = 0; j < N; j++) {
-                    celda_A = A[i * N + j];
+        for (i = 0; i < tam_submatriz; i++) {
+            for (j = 0; j < N; j++) {
+                celda_A = A[i * N + j];
 
-                    if (celda_A < min_AB[0]) {
-                        min_AB[0] = celda_A;
-                    }
+                if (celda_A < min_AB[0]) min_AB[0] = celda_A;
 
-                    if (celda_A > max_AB[0]){
-                        max_AB[0] = celda_A;
-                    }
+                if (celda_A > max_AB[0]) max_AB[0] = celda_A;
 
-                    prom_AB[0] += celda_A;
-                }
+                prom_AB[0] += celda_A;
             }
+        }
 
         // Calcular el valor máximo, mínimo y promedio de la matriz B.
         #pragma omp for reduction(min : min_AB[1]) reduction(max : max_AB[1]) reduction(+ : prom_AB[1]) nowait schedule(static)
-            for (i = rank * tam_submatriz; i < rank * tam_submatriz + tam_submatriz; i++) {
-                for (j = 0; j < N; j++) {
-                    celda_B = B[i * N + j];
+        for (i = rank * tam_submatriz; i < rank * tam_submatriz + tam_submatriz; i++) {
+            for (j = 0; j < N; j++) {
+                celda_B = B[i * N + j];
 
-                    if (celda_B < min_AB[1]) {
-                        min_AB[1] = celda_B;
-                    }
+                if (celda_B < min_AB[1]) min_AB[1] = celda_B;
 
-                    if (celda_B > max_AB[1]) {
-                        max_AB[1] = celda_B;
-                    }
+                if (celda_B > max_AB[1]) max_AB[1] = celda_B;
 
-                    prom_AB[1] += celda_B;
+                prom_AB[1] += celda_B;
+            }
+        }
+
+        #pragma omp for nowait schedule(static)
+        for (i = 0; i < tam_submatriz; i += tam_bloque) {
+            for (j = 0; j < N; j += tam_bloque) {
+                for (k = 0; k < N; k += tam_bloque) {
+                    multiplicar_bloque(&A[i * N + k], &B[j * N + k], &a_por_b[i * N + j], N, tam_bloque);
                 }
             }
-
-        #pragma omp for schedule(static) nowait
-            for (i = 0; i < tam_submatriz; i += tam_bloque) {
-                for (j = 0; j < N; j += tam_bloque) {
-                    for (k = 0; k < N; k += tam_bloque) {
-                        multiplicar_bloque(&A[i * N + k], &B[j * N + k], &a_por_b[i * N + j], N, tam_bloque);
-                    }
-                }
-            }
+        }
 
         #pragma omp master
         {
@@ -277,20 +269,20 @@ int main(int argc, char * argv[]) {
         #pragma omp barrier // Los hilos esperan a que el hilo master haya inicializado B_T y cociente
 
         #pragma omp for nowait schedule(static)
-            for (i = 0; i < tam_submatriz; i += tam_bloque) {
-                for (j = 0; j < N; j += tam_bloque) {
-                    for (k = 0; k < N; k += tam_bloque) {
-                        multiplicar_bloque(&C[i * N + k], &B_T[j * N + k], &c_por_bt[i * N + j], N, tam_bloque);
-                    }
+        for (i = 0; i < tam_submatriz; i += tam_bloque) {
+            for (j = 0; j < N; j += tam_bloque) {
+                for (k = 0; k < N; k += tam_bloque) {
+                    multiplicar_bloque(&C[i * N + k], &B_T[j * N + k], &c_por_bt[i * N + j], N, tam_bloque);
                 }
             }
+        }
 
         #pragma omp for nowait schedule(static)
-            for (i = 0; i < tam_submatriz; i++) {
-                for (j = 0; j < N; j++) {
-                    R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
-                }
+        for (i = 0; i < tam_submatriz; i++) {
+            for (j = 0; j < N; j++) {
+                R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
             }
+        }
     }
 
     tiempos_comunicacion[6] = MPI_Wtime();
