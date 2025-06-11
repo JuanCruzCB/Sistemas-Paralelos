@@ -71,10 +71,10 @@ int chequear_resultados(double * A, double * B, double * B_T, double * C, double
 
 void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double * bloque_resultado, int n, int tam_bloque) {
     int i, j, k;
-
+    double aux;
     for (i = 0; i < tam_bloque; i++) {
         for (j = 0; j < tam_bloque; j++) {
-            double aux = 0.0;
+            aux = 0.0;
             for (k = 0; k < tam_bloque; k++) {
                 aux += primer_bloque[i * n + k] * segundo_bloque[j * n + k];
             }
@@ -83,31 +83,30 @@ void multiplicar_bloque(double * primer_bloque, double * segundo_bloque, double 
     }
 }
 
-void multiplicar_matrices(double *A, double *B, double *resultado, int n, int tam_bloque, int porcion)
-{
+void multiplicar_matrices(double *A, double *B, double *resultado, int n, int tam_bloque, int tamaño_submatriz) {
     int i, j, k;
-
-    for (i = 0; i < porcion; i += tam_bloque) {
+    for (i = 0; i < tamaño_submatriz; i += tam_bloque) {
         for (j = 0; j < n; j += tam_bloque) {
-            for (k = 0; k < n; k += tam_bloque)
+            for (k = 0; k < n; k += tam_bloque) {
                 multiplicar_bloque(&A[i * n + k], &B[j * n + k], &resultado[i * n + j], n, tam_bloque);
+            }
         }
     }
 }
 
 int main(int argc, char * argv[]) {
     /* ARGUMENTOS */
-    int N = -1; 						// Tamaño de las matrices cuadradas (N×N).
+    int N; 						        // Tamaño de las matrices cuadradas (N×N).
 
     /* MPI */
     int rank;                           // ID de cada proceso.
-    int size;                           // Cantidad de procesos.
-    int porcion;                        // Porción de las matrices que trabaja cada proceso.
+    int cantidad_procesos;              // Cantidad de procesos.
+    int tamaño_submatriz;               // Tamaño de las submatrices que trabaja cada proceso worker.
     double tiempos_comunicacion[8];     // Timestamps de inicio y fin de cada comunicación MPI para luego calcularle la diferencia.
-    double tiempos_comunicacion_max[8]; //
-    double tiempos_comunicacion_min[8]; //
-    double tiempo_comunicacion_total;   //
-    double tiempo_total;                //
+    double tiempos_comunicacion_max[8]; // El tiempo máximo de cada comunicación.
+    double tiempos_comunicacion_min[8]; // El tiempo mínimo de cada comunicación.
+    double tiempo_comunicacion_total;   // Tiempo total de todas las comunicaciones sumadas.
+    double tiempo_total;                // Tiempo total de ejecución de todo el programa.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
@@ -117,14 +116,14 @@ int main(int argc, char * argv[]) {
     int tam_bloque = 128;               // Tamaño del bloque para la multiplicación por bloques.
 
     /* MÍNIMO, MÁXIMO, PROMEDIO */
-    double max_AB[2] = {-999.0, -999.0};
-    double min_AB[2] = {999.0, 999.0};
-    double prom_AB[2] = {0.0, 0.0};
-    double local_max[2] = {-999.0, -999.0};
-    double local_min[2] = {999.0, 999.0};
-    double local_prom[2] = {0.0, 0.0};
-    double celdaA = 0.0;
-    double celdaB = 0.0;
+    double max_AB[2] = {-999.0, -999.0};                // En la primera posición el máximo de A, en la segunda el máximo de B.
+    double min_AB[2] = {999.0, 999.0};                  // En la primera posición el mínimo de A, en la segunda el mínimo de B.
+    double prom_AB[2] = {0.0, 0.0};                     // En la primera posición el promedio de A, en la segunda el promedio de B.
+    double max_submatriz_AB[2] = {-999.0, -999.0};      // Igual pero para las submatrices.
+    double min_submatriz_AB[2] = {999.0, 999.0};        // Igual pero para las submatrices.
+    double prom_submatriz_AB[2] = {0.0, 0.0};           // Igual pero para las submatrices.
+    double celda_A = 0.0;                               // Variable para reducir accesos a memoria y aprovechar la caché.
+    double celda_B = 0.0;                               // Variable para reducir accesos a memoria y aprovechar la caché.
 
     // Se debe enviar el N de tamaño de las matrices.
     if ((argc != 2) || ((N = atoi(argv[1])) <= 0)) {
@@ -132,17 +131,20 @@ int main(int argc, char * argv[]) {
         exit(1);
     }
 
+    // Inicializar entorno MPI.
     MPI_Init(&argc, &argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(MPI_COMM_WORLD, &cantidad_procesos);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-    if (N % size != 0) {
+    // Validación de N.
+    if (N % cantidad_procesos != 0) {
         printf("El tamaño de la matriz debe ser múltiplo del numero de procesos.\n");
         exit(1);
     }
 
-    porcion = N / size;
-    tam_bloque = (porcion < tam_bloque ? porcion : tam_bloque);
+    // Se define el tamaño de cada submatriz para los procesos workers y se ajusta el tamaño de bloque si es necesario.
+    tamaño_submatriz = N / cantidad_procesos;
+    tam_bloque = (tamaño_submatriz < tam_bloque ? tamaño_submatriz : tam_bloque);
 
     // Alocar memoria para las cuatro matrices principales y las dos auxiliares.
     // El master tiene que repartir las matrices A y C entre los workers, por eso las tiene completas.
@@ -155,16 +157,15 @@ int main(int argc, char * argv[]) {
         R = (double *)malloc(N * N * sizeof(double));
     }
     else {
-        A = (double *)malloc(N * porcion * sizeof(double));
-        C = (double *)malloc(N * porcion * sizeof(double));
-        a_por_b = (double *)malloc(N * porcion * sizeof(double));
-        c_por_bt = (double *)malloc(N * porcion * sizeof(double));
-        R = (double *)malloc(N * porcion * sizeof(double));
+        A = (double *)malloc(N * tamaño_submatriz * sizeof(double));
+        C = (double *)malloc(N * tamaño_submatriz * sizeof(double));
+        a_por_b = (double *)malloc(N * tamaño_submatriz * sizeof(double));
+        c_por_bt = (double *)malloc(N * tamaño_submatriz * sizeof(double));
+        R = (double *)malloc(N * tamaño_submatriz * sizeof(double));
     }
 
     B = (double *)malloc(N * N * sizeof(double));
     B_T = (double *)malloc(N * N * sizeof(double));
-
 
     // Inicializar las cuatro matrices principales y las dos auxiliares.
     if (rank == MASTER) {
@@ -189,7 +190,7 @@ int main(int argc, char * argv[]) {
         }
     }
     else {
-        for (i = 0; i < porcion; i++) {
+        for (i = 0; i < tamaño_submatriz; i++) {
             for (j = 0; j < N; j++) {
                 a_por_b[i * N + j] = 0.0;
                 c_por_bt[i * N + j] = 0.0;
@@ -203,58 +204,52 @@ int main(int argc, char * argv[]) {
     tiempos_comunicacion[0] = MPI_Wtime();
     // El master reparte la matriz A y la matriz C en partes iguales entre los procesos workers.
     // El master reparte la matriz B entera entre los procesos workers.
-    MPI_Scatter(A, N * porcion, MPI_DOUBLE, A, N * porcion, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
-    MPI_Scatter(C, N * porcion, MPI_DOUBLE, C, N * porcion, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Scatter(A, N * tamaño_submatriz, MPI_DOUBLE, A, N * tamaño_submatriz, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Scatter(C, N * tamaño_submatriz, MPI_DOUBLE, C, N * tamaño_submatriz, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Bcast(B, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     tiempos_comunicacion[1] = MPI_Wtime();
 
-    // Calcular el valor máximo, mínimo y promedio de la matriz A.
-    for(i = 0; i < porcion; i++) {
+    // Cada proceso calcula el máximo, mínimo y promedio de su submatriz de A.
+    for(i = 0; i < tamaño_submatriz; i++) {
         for(j = 0; j < N; j++) {
 
-            celdaA = A[i * N + j];
+            celda_A = A[i * N + j];
 
-            if(celdaA > local_max[0]) {
-                local_max[0] = celdaA;
-            }
+            if(celda_A > max_submatriz_AB[0]) max_submatriz_AB[0] = celda_A;
 
-            if(celdaA < local_min[0]) {
-                local_min[0] = celdaA;
-            }
+            if(celda_A < min_submatriz_AB[0]) min_submatriz_AB[0] = celda_A;
 
-            local_prom[0] += celdaA;
+            prom_submatriz_AB[0] += celda_A;
         }
     }
 
     // Calcular el valor máximo, mínimo y promedio de la matriz B.
-    for(i = rank * porcion; i < rank * porcion + porcion; i++) {
+    for(i = rank * tamaño_submatriz; i < rank * tamaño_submatriz + tamaño_submatriz; i++) {
         for(j = 0; j < N; j++) {
 
-            celdaB = B[i * N + j];
+            celda_B = B[i * N + j];
 
-            if(celdaB > local_max[1]) {
-                local_max[1] = celdaB;
-            }
+            if(celda_B > max_submatriz_AB[1]) max_submatriz_AB[1] = celda_B;
 
-            if(celdaB < local_min[1]) {
-                local_min[1] = celdaB;
-            }
+            if(celda_B < min_submatriz_AB[1]) min_submatriz_AB[1] = celda_B;
 
-            local_prom[1] += celdaB;
+            prom_submatriz_AB[1] += celda_B;
         }
     }
 
     tiempos_comunicacion[2] = MPI_Wtime();
-    // Todos los workers hacen un Allreduce para tener todos el máximo, mínimo y promedio de A y B.
+    // Todos los workers hacen un Allreduce para obtener todos el máximo, mínimo y promedio de A y B.
     // Se usa un arreglo de mínimos máximos y promedios para evitar el overhead de hacer 3 Allreduce más.
-    MPI_Allreduce(&local_min, &min_AB, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_max, &max_AB, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_prom, &prom_AB, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&min_submatriz_AB, &min_AB, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&max_submatriz_AB, &max_AB, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&prom_submatriz_AB, &prom_AB, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     tiempos_comunicacion[3] = MPI_Wtime();
 
-    // Se calcula el cociente.
+
+    // Se calcula el promedio como tal, hasta ahora solo teníamos la suma de los valores.
     prom_AB[0] = prom_AB[0] / (N * N);
     prom_AB[1] = prom_AB[1] / (N * N);
+    // Se calcula el cociente.
     cociente = ((max_AB[0] * max_AB[1]) - (min_AB[0] * min_AB[1])) / (prom_AB[0] * prom_AB[1]);
 
     // El master inicializa la matriz B_T (B transpuesta).
@@ -269,13 +264,13 @@ int main(int argc, char * argv[]) {
     tiempos_comunicacion[5] = MPI_Wtime();
 
     // Resolver [A×B] y guardarlo en una matriz auxiliar a_por_b.
-    multiplicar_matrices(A, B, a_por_b, N, tam_bloque, porcion);
+    multiplicar_matrices(A, B, a_por_b, N, tam_bloque, tamaño_submatriz);
 
     // Resolver [C×B_T] y guardarlo en una matriz auxiliar c_por_bt.
-    multiplicar_matrices(C, B_T, c_por_bt, N, tam_bloque, porcion);
+    multiplicar_matrices(C, B_T, c_por_bt, N, tam_bloque, tamaño_submatriz);
 
     // Cada worker calcula la porción de (Cociente * a_por_b) + c_por_bt.
-    for (i = 0; i < porcion; i++) {
+    for (i = 0; i < tamaño_submatriz; i++) {
         for (j = 0; j < N; j++) {
             R[i * N + j] = (a_por_b[i * N + j] * cociente) + (c_por_bt[i * N + j]);
         }
@@ -283,7 +278,7 @@ int main(int argc, char * argv[]) {
 
     tiempos_comunicacion[6] = MPI_Wtime();
     // Cada worker le envía al master su porción de R y el master lo combina todo en R.
-    MPI_Gather(R, porcion * N, MPI_DOUBLE, R, porcion * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Gather(R, tamaño_submatriz * N, MPI_DOUBLE, R, tamaño_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     tiempos_comunicacion[7] = MPI_Wtime();
 
     // Fin de la medición de los tiempos de comunicación.
@@ -293,8 +288,8 @@ int main(int argc, char * argv[]) {
     MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_max, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
     // El master obtiene las matrices a_por_b y c_por_bt completas que las necesita para chequear que los resultados
     // son correctos.
-    MPI_Gather(a_por_b, porcion * N, MPI_DOUBLE, a_por_b, porcion * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
-    MPI_Gather(c_por_bt, porcion * N, MPI_DOUBLE, c_por_bt, porcion * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Gather(a_por_b, tamaño_submatriz * N, MPI_DOUBLE, a_por_b, tamaño_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
+    MPI_Gather(c_por_bt, tamaño_submatriz * N, MPI_DOUBLE, c_por_bt, tamaño_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
     if (rank == MASTER) {
         // El tiempo total del programa es desde que empieza la primera comunicación hasta que termina la última.
