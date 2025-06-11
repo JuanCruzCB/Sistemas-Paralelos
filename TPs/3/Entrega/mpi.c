@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <sys/time.h>
 #include <stdlib.h>
 #include "mpi.h"
 
@@ -96,34 +95,34 @@ void multiplicar_matrices(double *A, double *B, double *resultado, int n, int ta
 
 int main(int argc, char * argv[]) {
     /* ARGUMENTOS */
-    int N; 						        // Tamaño de las matrices cuadradas (N×N).
+    int N; 						                    // Tamaño de las matrices cuadradas (N×N).
 
     /* MPI */
-    int rank;                           // ID de cada proceso.
-    int cantidad_procesos;              // Cantidad de procesos.
-    int tam_submatriz;               // Tamaño de las submatrices que trabaja cada proceso worker.
-    double tiempos_comunicacion[8];     // Timestamps de inicio y fin de cada comunicación MPI para luego calcularle la diferencia.
-    double tiempos_comunicacion_max[8]; // El tiempo máximo de cada comunicación.
-    double tiempos_comunicacion_min[8]; // El tiempo mínimo de cada comunicación.
-    double tiempo_comunicacion_total;   // Tiempo total de todas las comunicaciones sumadas.
-    double tiempo_total;                // Tiempo total de ejecución de todo el programa.
+    int rank;                                       // ID de cada proceso.
+    int cantidad_procesos;                          // Cantidad de procesos.
+    int tam_submatriz;                              // Tamaño de las submatrices que trabaja cada proceso worker.
+    double tiempos_comunicacion[8];                 // Timestamps de inicio y fin de cada comunicación MPI para luego calcularle la diferencia.
+    double tiempos_comunicacion_max[8];             // El tiempo máximo de cada comunicación.
+    double tiempos_comunicacion_min[8];             // El tiempo mínimo de cada comunicación.
+    double tiempo_comunicacion_total;               // Tiempo total de todas las comunicaciones sumadas.
+    double tiempo_total;                            // Tiempo total de ejecución de todo el programa.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
     int i, j;
-    double acumulador = 1.0;            // Acumulador para los valores de la matriz B.
-    double cociente = 0; 				// Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
-    int tam_bloque = 128;               // Tamaño del bloque para la multiplicación por bloques.
+    double acumulador = 1.0;                        // Acumulador para los valores de la matriz B.
+    double cociente = 0; 				            // Variable auxiliar que almacenará el resultado de la primer parte de la ecuación (la división).
+    int tam_bloque = 128;                           // Tamaño del bloque para la multiplicación por bloques.
 
     /* MÍNIMO, MÁXIMO, PROMEDIO */
-    double max_AB[2] = {-999.0, -999.0};                // En la primera posición el máximo de A, en la segunda el máximo de B.
-    double min_AB[2] = {999.0, 999.0};                  // En la primera posición el mínimo de A, en la segunda el mínimo de B.
-    double prom_AB[2] = {0.0, 0.0};                     // En la primera posición el promedio de A, en la segunda el promedio de B.
-    double max_submatriz_AB[2] = {-999.0, -999.0};      // Igual pero para las submatrices.
-    double min_submatriz_AB[2] = {999.0, 999.0};        // Igual pero para las submatrices.
-    double prom_submatriz_AB[2] = {0.0, 0.0};           // Igual pero para las submatrices.
-    double celda_A = 0.0;                               // Variable para reducir accesos a memoria y aprovechar la caché.
-    double celda_B = 0.0;                               // Variable para reducir accesos a memoria y aprovechar la caché.
+    double max_AB[2] = {-999.0, -999.0};            // En la primera posición el máximo de A, en la segunda el máximo de B.
+    double min_AB[2] = {999.0, 999.0};              // En la primera posición el mínimo de A, en la segunda el mínimo de B.
+    double prom_AB[2] = {0.0, 0.0};                 // En la primera posición el promedio de A, en la segunda el promedio de B.
+    double max_submatriz_AB[2] = {-999.0, -999.0};  // Igual pero para las submatrices.
+    double min_submatriz_AB[2] = {999.0, 999.0};    // Igual pero para las submatrices.
+    double prom_submatriz_AB[2] = {0.0, 0.0};       // Igual pero para las submatrices.
+    double celda_A = 0.0;                           // Variable para reducir accesos a memoria y aprovechar la caché.
+    double celda_B = 0.0;                           // Variable para reducir accesos a memoria y aprovechar la caché.
 
     // Se debe enviar el N de tamaño de las matrices.
     if ((argc != 2) || ((N = atoi(argv[1])) <= 0)) {
