@@ -195,7 +195,7 @@ int main(int argc, char * argv[]) {
 
     tiempos_comunicacion[0] = MPI_Wtime();
     // El master reparte la matriz A y la matriz C en partes iguales entre los procesos workers.
-    // El master reparte la matriz B entera entre los procesos workers.
+    // El master le pasa una copia de la matriz B entera a los procesos workers.
     MPI_Scatter(A, N * tam_submatriz, MPI_DOUBLE, A, N * tam_submatriz, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Scatter(C, N * tam_submatriz, MPI_DOUBLE, C, N * tam_submatriz, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Bcast(B, N * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
@@ -203,7 +203,7 @@ int main(int argc, char * argv[]) {
 
     #pragma omp parallel private(i, j, k, celda_A, celda_B)
     {
-        // Calcular el valor máximo, mínimo y promedio de la matriz A.
+        // Calcular el valor máximo, mínimo y promedio de la submatriz A de cada proceso.
         #pragma omp for reduction(min : min_AB[0]) reduction(max : max_AB[0]) reduction(+ : prom_AB[0]) nowait schedule(static)
         for (i = 0; i < tam_submatriz; i++) {
             for (j = 0; j < N; j++) {
@@ -231,6 +231,7 @@ int main(int argc, char * argv[]) {
             }
         }
 
+        // Se multiplica la submatriz de A por B.
         #pragma omp for nowait schedule(static)
         for (i = 0; i < tam_submatriz; i += tam_bloque) {
             for (j = 0; j < N; j += tam_bloque) {
@@ -250,12 +251,11 @@ int main(int argc, char * argv[]) {
             tiempos_comunicacion[3] = MPI_Wtime();
 
             if(rank == MASTER) { // Lo ejecuta UNICAMENTE el proceso master
-                // El master calcula el cociente.
                 prom[0] = prom[0] / (N * N);
                 prom[1] = prom[1] / (N * N);
                 cociente = ((max[0] * max[1]) - (min[0] * min[1])) / (prom[0] * prom[1]);
 
-                // Sólo el proceso master inicializa la matriz B_T (B transpuesta).
+                // Inicialización de la matriz B_T (B transpuesta).
                 for(i = 0; i < N ; i++)
                     for(j = 0; j < N ; j++) B_T[j * N + i] = B[i * N + j];
             }
