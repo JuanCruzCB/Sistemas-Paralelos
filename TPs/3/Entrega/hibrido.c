@@ -242,11 +242,11 @@ int main(int argc, char * argv[]) {
 
         #pragma omp master
         {
-            // Lo ejecutan todos los hilos master de cada proceso = Se ejecuta T veces
+            // Lo ejecuta el hilo master de cada proceso, el mínimo, máximo y promedio final de A y B se lo queda el PROCESO MASTER.
             tiempos_comunicacion[2] = MPI_Wtime();
-            MPI_Allreduce(&min_AB, &min, 2, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
-            MPI_Allreduce(&max_AB, &max, 2, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
-            MPI_Allreduce(&prom_AB, &prom, 2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Reduce(&min_AB, &min, 2, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
+            MPI_Reduce(&max_AB, &max, 2, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+            MPI_Reduce(&prom_AB, &prom, 2, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
             tiempos_comunicacion[3] = MPI_Wtime();
 
             if(rank == MASTER) { // Lo ejecuta UNICAMENTE el proceso master
