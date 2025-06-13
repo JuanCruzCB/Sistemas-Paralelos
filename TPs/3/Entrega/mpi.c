@@ -110,10 +110,7 @@ int main(int argc, char * argv[]) {
     int cantidad_procesos;                          // Cantidad de procesos.
     int tam_submatriz;                              // Tamaño de las submatrices que trabaja cada proceso worker.
     double tiempos_comunicacion[8];                 // Timestamps de inicio y fin de cada comunicación MPI para luego calcularle la diferencia.
-    double tiempos_comunicacion_max[8];             // El tiempo máximo de cada comunicación.
-    double tiempos_comunicacion_min[8];             // El tiempo mínimo de cada comunicación.
-    double tiempo_comunicacion_programa;               // Tiempo total de todas las comunicaciones sumadas.
-    double tiempo_inicio_promedio;                            // Tiempo total de ejecución de todo el programa.
+    double tiempo_comunicacion_programa;            // Tiempo total de todas las comunicaciones sumadas.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
