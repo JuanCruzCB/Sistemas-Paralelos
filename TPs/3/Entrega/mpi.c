@@ -311,8 +311,8 @@ int main(int argc, char * argv[]) {
         // último que termina (que es siempre el master).
         tiempo_ejecucion = tiempo_fin - tiempo_inicio;
 
-        printf("Tiempo de ejecución = %lf\n", tiempo_ejecucion);
-        printf("Tiempo de comunicación total en promedio = %lf\n", tiempo_comunicacion_programa / cantidad_procesos);
+        printf("\nTiempo de ejecución = %lf\n", tiempo_ejecucion);
+        printf("Tiempo de comunicación total en promedio = %lf\n\n", tiempo_comunicacion_programa / cantidad_procesos);
         chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
     }
 
