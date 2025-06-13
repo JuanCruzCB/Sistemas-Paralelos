@@ -1,13 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include "mpi.h"
 
 #define MASTER 0
 #define EPSILON 1e-6
 
+double dwalltime() {
+    double sec;
+    struct timeval tv;
+    gettimeofday( & tv, NULL);
+    sec = tv.tv_sec + tv.tv_usec / 1000000.0;
+    return sec;
+}
+
 int chequear_resultados(double * A, double * B, double * B_T, double * C, double * R, double * a_por_b, double * c_por_bt, int N, double cociente) {
     int i, j;
-
     printf("Chequeando resultados...\n");
     // Chequear que A×B es correcto.
     for (i = 0; i < N; i++) {
@@ -104,8 +112,8 @@ int main(int argc, char * argv[]) {
     double tiempos_comunicacion[8];                 // Timestamps de inicio y fin de cada comunicación MPI para luego calcularle la diferencia.
     double tiempos_comunicacion_max[8];             // El tiempo máximo de cada comunicación.
     double tiempos_comunicacion_min[8];             // El tiempo mínimo de cada comunicación.
-    double tiempo_comunicacion_total;               // Tiempo total de todas las comunicaciones sumadas.
-    double tiempo_total;                            // Tiempo total de ejecución de todo el programa.
+    double tiempo_comunicacion_programa;               // Tiempo total de todas las comunicaciones sumadas.
+    double tiempo_inicio_promedio;                            // Tiempo total de ejecución de todo el programa.
 
     /* MATRICES */
     double * A, * B, * B_T, * C, * R, * a_por_b, * c_por_bt;
@@ -123,6 +131,10 @@ int main(int argc, char * argv[]) {
     double prom_submatriz_AB[2] = {0.0, 0.0};       // Igual pero para las submatrices.
     double celda_A = 0.0;                           // Variable para reducir accesos a memoria y aprovechar la caché.
     double celda_B = 0.0;                           // Variable para reducir accesos a memoria y aprovechar la caché.
+
+    double tiempo_inicio = 0.0; 					// Se usa para medir el tiempo.
+    double tiempo_fin = 0.0;
+    double tiempo_ejecucion = 0.0;
 
     // Se debe enviar el N de tamaño de las matrices.
     if ((argc != 2) || ((N = atoi(argv[1])) <= 0)) {
@@ -199,6 +211,7 @@ int main(int argc, char * argv[]) {
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
+    tiempo_inicio = dwalltime();
 
     tiempos_comunicacion[0] = MPI_Wtime();
     // El master reparte la matriz A y la matriz C en partes iguales entre los procesos workers.
@@ -280,31 +293,31 @@ int main(int argc, char * argv[]) {
     MPI_Gather(R, tam_submatriz * N, MPI_DOUBLE, R, tam_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     tiempos_comunicacion[7] = MPI_Wtime();
 
+    tiempo_fin = dwalltime();
     // Fin de la medición de los tiempos de comunicación.
 
-    // El master obtiene los 8 mínimos y 8 máximos de cada medición.
-    MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_min, 8, MPI_DOUBLE, MPI_MIN, MASTER, MPI_COMM_WORLD);
-    MPI_Reduce(tiempos_comunicacion, tiempos_comunicacion_max, 8, MPI_DOUBLE, MPI_MAX, MASTER, MPI_COMM_WORLD);
+    double tiempo_comunicacion_proceso = tiempos_comunicacion[1] - tiempos_comunicacion[0] +
+    tiempos_comunicacion[3] - tiempos_comunicacion[2] +
+    tiempos_comunicacion[5] - tiempos_comunicacion[4] +
+    tiempos_comunicacion[7] - tiempos_comunicacion[6];
+
+    printf("El tiempo de comunicacion del proceso %d es: %f\n", rank, tiempo_comunicacion_proceso);
+    MPI_Reduce(&tiempo_comunicacion_proceso, &tiempo_comunicacion_programa, 1, MPI_DOUBLE, MPI_SUM, MASTER, MPI_COMM_WORLD);
+
     // El master obtiene las matrices a_por_b y c_por_bt completas que las necesita para chequear que los resultados
     // son correctos.
     MPI_Gather(a_por_b, tam_submatriz * N, MPI_DOUBLE, a_por_b, tam_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
     MPI_Gather(c_por_bt, tam_submatriz * N, MPI_DOUBLE, c_por_bt, tam_submatriz * N, MPI_DOUBLE, MASTER, MPI_COMM_WORLD);
 
     if (rank == MASTER) {
-        // El tiempo total del programa es desde que empieza la primera comunicación hasta que termina la última.
-        tiempo_total = tiempos_comunicacion_max[7] - tiempos_comunicacion_min[0];
-        // El tiempo de comunicación total es la suma de los tiempos de todas las comunicaciones individuales que hubo.
-        tiempo_comunicacion_total =
-            (tiempos_comunicacion_max[1] - tiempos_comunicacion_min[0]) +
-            (tiempos_comunicacion_max[3] - tiempos_comunicacion_min[2]) +
-            (tiempos_comunicacion_max[5] - tiempos_comunicacion_min[4]) +
-            (tiempos_comunicacion_max[7] - tiempos_comunicacion_min[6]);
+        // El tiempo de ejecución del programa es desde el primer proceso que arranca hasta el
+        // último que termina (que es siempre el master).
+        tiempo_ejecucion = tiempo_fin - tiempo_inicio;
 
-        printf("Tiempo total = %lf\nTiempo de comunicación total = %lf\n\n", tiempo_total, tiempo_comunicacion_total);
+        printf("Tiempo de ejecución = %lf\n", tiempo_ejecucion);
+        printf("Tiempo de comunicación total en promedio = %lf\n", tiempo_comunicacion_programa / cantidad_procesos);
         chequear_resultados(A, B, B_T, C, R, a_por_b, c_por_bt, N, cociente);
     }
-
-    MPI_Finalize();
 
     // Liberar la memoria que alocamos a las matrices al inicio.
     free(A);
@@ -315,5 +328,6 @@ int main(int argc, char * argv[]) {
     free(a_por_b);
     free(c_por_bt);
 
+    MPI_Finalize();
     return (0);
 }
