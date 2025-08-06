@@ -525,7 +525,7 @@ int main() {
 
 ### Pasaje de parámetros
 
-- Si se quieer pasar varios parámetros a cada hilo, hay 2 alternativas:
+- Si se quiere pasar varios parámetros a cada hilo, hay 2 alternativas:
   - Pasarle un **struct** a cada hilo que contenga todos los argumentos que necesita.
   - Mantener uno o más arreglos globales y pasarle el id a cada hilo para que sepa a qué posición debe acceder.
 
@@ -612,7 +612,6 @@ int pthread_barrier_destroy(pthread_barrier_t *barrier);
 - Las barreras son puntos de sincronización que involucran a múltiples hilos.
 - El hilo llamador se bloquea hasta que el número de hilos implicados en la barrera hayan alcanzado este punto.
 - La cantidad de hilos asociados a la barrera se especifica en su inicialización.
--
 
 ### Semáforos
 
@@ -867,9 +866,9 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 2. **Minimizar frecuencia de las interacciones**: Cada interacción tiene un costo inicial de preparación. Siempre que sea posible, conviene combinar varias comunicaciones en una sola.
 3. **Minimizar competencia entre recursos y zonas críticas (hotspots)**: Evitar posibles cuellos de botella mediante el uso de técnica descentralizada. Replicar datos si es necesario.
 4. **Solapar cómputo con comunicaciones**: Mediante el uso de operaciones no bloqueantes en pasaje de mensajes y técnicas de multi-hilado y prebúsqueda en memoria compartida.
-5. **Replicar datos o cómputo**: si permite reducir las interacciones (mensajes o sincronización).
+5. **Replicar datos o cómputo**: Si permite reducir las interacciones (mensajes o sincronización).
 6. **Usar operaciones de comunicación colectiva**.
-7. **Solapar comunicaciones con otras comunicaciones**: siempre y cuando el hardware de soporte lo permita, solapar diferentes comunicaciones puede reducir el overhead.
+7. **Solapar comunicaciones con otras comunicaciones**: Siempre y cuando el hardware de soporte lo permita, solapar diferentes comunicaciones puede reducir el overhead.
 
 ## Modelos de algoritmos paralelos
 
@@ -877,7 +876,7 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 - Un modelo de algoritmo representa una estructura usual de código que combina técnicas de descomposición de tareas y mapeo junto a la aplicación de métodos para minimizar overhead.
 - Existen varios modelos:
-  - Master-Slave.
+  - Master-Worker.
   - Pipeline.
   - Single Program Multiple Data.
   - Divide and Conquer.
@@ -1027,8 +1026,7 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 - En los 80, Gustafson observó que:
   - Un multiprocesador más grande usualmente permite resolver un problema de mayor tamaño en un tiempo de ejecución determinado (escalabilidad) → el tamaño de problema seleccionado depende frecuentemente del número de unidades de procesamiento disponibles.
   - Al incrementar el tamaño del problema y el número de unidades de procesamiento para mantener el tiempo de ejecución constante, la fracción secuencial de los programas se mantiene fija o no crece en forma proporcional al tamaño de la entrada.
-- Por lo tanto, asumir que el tamaño de problema es fijo resulta tan válido
-  como que el tiempo de ejecución paralela lo es.
+- Por lo tanto, asumir que el tamaño de problema es fijo resulta tan válido como que el tiempo de ejecución paralela lo es.
 - Basándose en sus observaciones, Gustafson re-escribió la ecuación para estimar el máximo speedup alcanzable (conocido como Speedup escalado).
 - La ley dice lo siguiente:
   - Dada una fracción $f', 0 \leq f' \leq 1$, de un programa paralelo que debe ser ejecutado secuencialmente pero que no crece en forma proporcional a N, el speedup escalado se calcula como:
@@ -1043,7 +1041,7 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 | Característica     | Escalabilidad fuerte (Amdahl)                                                               | Escalabilidad débil (Gustafson)                                                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tamaño de problema | Se mantiene fijo a medida que crece la cantidad de procesadores.                            | El tamaño del problema por procesador se mantiene fijo a medida que se incrementa la cantidad de procesadores → El tamaño total del problema es proporcional al número de procesadores usados. |
-| Objetivo           | Resolver el mismo problema de forma más rápida                                              | Resolver un problema más grande en la misma cantidad de tiempo                                                                                                                                 |
+| Objetivo           | Resolver el mismo problema de forma más rápida.                                             | Resolver un problema más grande en la misma cantidad de tiempo.                                                                                                                                |
 | Escalado perfecto  | Se logra cuando el problema se resuelve en 1/P unidades de tiempo, comparado al secuencial. | Se logra cuando se resuelve un problema P veces más grande en la misma cantidad de tiempo que el secuencial.                                                                                   |
 
 ### Desbalance de carga
@@ -1062,8 +1060,7 @@ Reducir el overhead asociado a las interacciones entre procesos es un factor cla
 
 - Este principio dice: `90% del tiempo de ejecución se dedica a ejecutar 10% del código.`
 - En otras palabras, nos dice que deberíamos enfocarnos en optimizar las partes del código que más tiempo están tardando, ya que mejorar estas partes incluso un poco es mucho más productivo que mejorar muchísimo partes que no toman mucho tiempo.
-- En programas pequeños, uno puede identificar fácilmente donde está la sección de código que más demanda computacional tiene (a esto se
-  lo conoce como **hotspot**):
+- En programas pequeños, uno puede identificar fácilmente donde está la sección de código que más demanda computacional tiene (a esto se lo conoce como **hotspot**):
   - Observando y analizando el código (habitualmente los bucles).
   - Instrumentando el código “a mano” (tomar tiempos de diferentes secciones).
 - En programas de complejidad mediana o alta, se puede realizar un proceso llamado **profiling** (o perfilado).
@@ -1362,7 +1359,7 @@ for (i = 0; i < n; i++) {
 }
 ```
 
-- Igual que single pero asegura que el único hilo que entra el bloque de código es el main.
+- Igual que single pero asegura que el único hilo que entra al bloque de código es el main.
 - A diferencia de single, no hay barrera implícita al final del bloque.
 
 ### Constructor barrier
@@ -1446,7 +1443,6 @@ for (i = 0; i < n; i++) {
 - `int omp_get_thread_num()`: Retorna el ID del hilo que la invocó dentro de la región paralela actual.
 - `int omp_get_num_procs()`: Retorna el número de procesadores disponibles en el sistema.
 - `int omp_in_parallel()`: Retorna True si el hilo que la invocó está dentro una región paralela, si no False.
-- ``:
 
 #### Creación de hilos
 
